@@ -11,11 +11,6 @@ public class HomeController : Controller
     [AllowAnonymous]
     public IActionResult Index()
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            return RedirectToAction("Dashboard", "Account");
-        }
-
         return View(new LoginViewModel());
     }
 
