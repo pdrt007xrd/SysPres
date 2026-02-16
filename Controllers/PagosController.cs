@@ -507,6 +507,8 @@ public class PagosController : Controller
         var empresaCiudad = empresa?.Ciudad ?? "Ciudad pendiente";
         var empresaRnc = $"RNC: {(string.IsNullOrWhiteSpace(empresa?.Rnc) ? "-" : empresa.Rnc)}";
         var culturaMoneda = CultureInfo.GetCultureInfo("es-DO");
+        var detallesOrdenados = pago.Detalles.OrderBy(x => x.NumeroCuota).ThenBy(x => x.Id).ToList();
+        var filasTabla = Math.Max(detallesOrdenados.Count, 1);
         var cuotasIds = pago.Detalles.Select(d => d.PrestamoCuotaId).Distinct().ToList();
         var fechasVencimiento = cuotasIds.Count == 0
             ? new Dictionary<int, DateTime>()
@@ -530,7 +532,8 @@ public class PagosController : Controller
         {
             container.Page(page =>
             {
-                page.Size(esTermico ? new PageSize(226.77f, 850f) : PageSizes.A4);
+                var altoTermico = 320f + (filasTabla * 36f) + 180f;
+                page.Size(esTermico ? new PageSize(226.77f, altoTermico) : PageSizes.A4);
                 page.Margin(esTermico ? 14 : 24);
                 page.MarginTop(esTermico ? 24 : 32);
                 page.DefaultTextStyle(x => x.FontFamily("Verdana").FontSize(9));
@@ -586,7 +589,6 @@ public class PagosController : Controller
                                 h.Cell().Element(CellHeaderMoney).Text("Total");
                             });
 
-                            var detallesOrdenados = pago.Detalles.OrderBy(x => x.NumeroCuota).ThenBy(x => x.Id).ToList();
                             foreach (var d in detallesOrdenados)
                             {
                                 var fechaCuota = fechasVencimiento.TryGetValue(d.PrestamoCuotaId, out var fv)
@@ -607,12 +609,21 @@ public class PagosController : Controller
                             }
                         });
 
+                        column.Item().PaddingTop(6).AlignCenter().Text($"Pagos aplicados: {filasTabla}");
                         column.Item().PaddingTop(8).Element(CellSeparator).Text(string.Empty);
                         column.Item().PaddingTop(4).Row(r =>
                         {
                             r.RelativeItem().Text("Totales:");
                             r.ConstantItem(95).AlignRight().Text(MontoTabla(pago.TotalPagado));
                         });
+
+                        column.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text("Balance pendiente:");
+                            r.ConstantItem(95).AlignRight().Text(MontoTabla(pago.BalancePendiente));
+                        });
+
+                        column.Item().PaddingTop(10).AlignCenter().Text("GRACIAS POR SU PAGO!").Bold();
                     }
                     else
                     {
