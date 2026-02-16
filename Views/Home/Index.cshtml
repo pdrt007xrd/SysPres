@@ -1,0 +1,66 @@
+@model SysPres.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "SysPres";
+}
+
+<style>
+    .login-wf-box {
+        background: linear-gradient(135deg, #e3e9f6 0%, #c7d0e6 100%);
+        border: 2px solid #3a6ea5;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px 0 rgba(58,110,165,0.10);
+        padding: 2.5rem 2rem 2rem 2rem;
+        max-width: 420px;
+        margin: auto;
+    }
+
+    .login-wf-title {
+        color: #3a6ea5;
+        font-weight: 600;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: 1px;
+    }
+
+    .login-wf-link {
+        color: #1a4f8b;
+        text-decoration: underline;
+        font-size: 1rem;
+    }
+</style>
+
+<div class="d-flex align-items-center justify-content-center min-vh-100">
+    <div class="login-wf-box">
+        <div class="text-center login-wf-title mb-4">Bienvenido a SysPres</div>
+
+        @if (TempData["LoginError"] is string loginError)
+        {
+            <div class="alert alert-danger" role="alert">@loginError</div>
+        }
+
+        <form method="post" asp-controller="Account" asp-action="Login">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <div class="mb-3">
+                <label asp-for="UserName" class="form-label">Usuario</label>
+                <input asp-for="UserName" class="form-control" placeholder="Ingrese su usuario" />
+                <span asp-validation-for="UserName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label">Contraseña</label>
+                <input asp-for="Password" type="password" class="form-control" placeholder="Ingrese su contraseña" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="d-grid mb-2">
+                <button type="submit" class="btn btn-primary">Ingresar</button>
+            </div>
+            <div class="text-center mt-2">
+                <a asp-controller="Account" asp-action="Register" class="login-wf-link">Registrarse</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

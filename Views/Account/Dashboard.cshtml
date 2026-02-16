@@ -1,0 +1,122 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-0 min-vh-100">
+    <aside class="col-12 col-md-3 col-lg-2 border-end bg-white">
+        <div class="d-md-none p-3 border-bottom">
+            <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false" aria-controls="sidebarMenu">
+                Menú
+            </button>
+        </div>
+
+        <div class="collapse d-md-block" id="sidebarMenu">
+            <div class="p-3 p-md-4">
+                <h5 class="mb-4 fw-bold text-primary">SysPres</h5>
+                <ul class="nav nav-pills flex-column gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link link-dark" href="#">Presupuestos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link link-dark" href="#">Facturación</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link link-dark" href="#">Reportes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link link-dark" href="#">Configuración</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </aside>
+
+    <section class="col-12 col-md-9 col-lg-10 p-3 p-md-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h2 class="mb-1">Bienvenido al sistema SysPres</h2>
+                <p class="text-muted mb-0">Gestiona módulos y operaciones desde el panel lateral.</p>
+            </div>
+            <form method="post" asp-controller="Account" asp-action="Logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">Cerrar sesión</button>
+            </form>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Presupuestos</h6>
+                        <div class="fs-4 fw-bold">24</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Facturas</h6>
+                        <div class="fs-4 fw-bold">18</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Pendientes</h6>
+                        <div class="fs-4 fw-bold text-warning">6</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Usuarios</h6>
+                        <div class="fs-4 fw-bold">5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">Actividad reciente</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Acción</th>
+                            <th>Módulo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>15/02/2026</td>
+                            <td>Creación de presupuesto</td>
+                            <td>Presupuestos</td>
+                            <td><span class="badge text-bg-success">Completado</span></td>
+                        </tr>
+                        <tr>
+                            <td>15/02/2026</td>
+                            <td>Emisión de factura</td>
+                            <td>Facturación</td>
+                            <td><span class="badge text-bg-success">Completado</span></td>
+                        </tr>
+                        <tr>
+                            <td>14/02/2026</td>
+                            <td>Actualización de datos</td>
+                            <td>Configuración</td>
+                            <td><span class="badge text-bg-warning">Pendiente</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
