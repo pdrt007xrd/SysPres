@@ -1,3 +1,4 @@
+@model SysPres.ViewModels.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
 }
@@ -13,22 +14,47 @@
         <div class="collapse d-md-block" id="sidebarMenu">
             <div class="p-3 p-md-4">
                 <h5 class="mb-4 fw-bold text-primary">SysPres</h5>
+                @{
+                    var canClientes = User.IsInRole("Admin") || User.HasClaim("permission", "Clientes");
+                    var canPrestamos = User.IsInRole("Admin") || User.HasClaim("permission", "Prestamos");
+                    var canPagos = User.IsInRole("Admin") || User.HasClaim("permission", "Pagos");
+                    var canReportes = User.IsInRole("Admin") || User.HasClaim("permission", "Reportes");
+                    var canConfig = User.IsInRole("Admin");
+                }
                 <ul class="nav nav-pills flex-column gap-2">
                     <li class="nav-item">
                         <a class="nav-link active" href="#">Inicio</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link link-dark" href="#">Presupuestos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link link-dark" href="#">Facturación</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link link-dark" href="#">Reportes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link link-dark" href="#">Configuración</a>
-                    </li>
+                    @if (canClientes)
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Clientes" asp-action="Index" class="nav-link link-dark">Clientes</a>
+                        </li>
+                    }
+                    @if (canPrestamos)
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Prestamos" asp-action="Index" class="nav-link link-dark">Préstamos</a>
+                        </li>
+                    }
+                    @if (canPagos)
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Pagos" asp-action="Index" class="nav-link link-dark">Pagos</a>
+                        </li>
+                    }
+                    @if (canReportes)
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Reportes" asp-action="Index" class="nav-link link-dark">Reportes</a>
+                        </li>
+                    }
+                    @if (canConfig)
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Configuracion" asp-action="Index" class="nav-link link-dark">Configuración</a>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>
@@ -47,35 +73,52 @@
         </div>
 
         <div class="row g-3 mb-4">
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm h-100">
+            <div class="col-12 col-sm-6 col-xl-2">
+                <div class="card shadow-sm h-100 border-primary">
                     <div class="card-body">
-                        <h6 class="text-muted mb-1">Presupuestos</h6>
-                        <div class="fs-4 fw-bold">24</div>
+                        <h6 class="text-muted mb-1">Préstamos activos</h6>
+                        <div class="fs-4 fw-bold text-primary">@Model.PrestamosActivos</div>
+                        <span class="small text-muted">A futuro</span>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm h-100">
+            <div class="col-12 col-sm-6 col-xl-2">
+                <div class="card shadow-sm h-100 border-warning">
                     <div class="card-body">
-                        <h6 class="text-muted mb-1">Facturas</h6>
-                        <div class="fs-4 fw-bold">18</div>
+                        <h6 class="text-muted mb-1">Préstamos en atraso</h6>
+                        <div class="fs-4 fw-bold text-warning">@Model.PrestamosEnAtraso</div>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm h-100">
+            <div class="col-12 col-sm-6 col-xl-2">
+                <div class="card shadow-sm h-100 border-warning">
                     <div class="card-body">
-                        <h6 class="text-muted mb-1">Pendientes</h6>
-                        <div class="fs-4 fw-bold text-warning">6</div>
+                        <h6 class="text-muted mb-1">Total atrasado</h6>
+                        <div class="fs-4 fw-bold text-warning">@Model.TotalAtrasado.ToString("C")</div>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
+            <div class="col-12 col-sm-6 col-xl-2">
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
-                        <h6 class="text-muted mb-1">Usuarios</h6>
-                        <div class="fs-4 fw-bold">5</div>
+                        <h6 class="text-muted mb-1">Capital prestado</h6>
+                        <div class="fs-4 fw-bold">@Model.CapitalPrestado.ToString("C")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-2">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Monto global a cobrar</h6>
+                        <div class="fs-4 fw-bold text-warning">@Model.MontoGlobalCobrar.ToString("C")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-2">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-1">Interés recolectado</h6>
+                        <div class="fs-4 fw-bold">@Model.InteresRecolectado.ToString("C")</div>
                     </div>
                 </div>
             </div>
@@ -90,30 +133,27 @@
                     <thead class="table-light">
                         <tr>
                             <th>Fecha</th>
+                            <th>Usuario</th>
                             <th>Acción</th>
-                            <th>Módulo</th>
-                            <th>Estado</th>
+                            <th>Detalle</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>15/02/2026</td>
-                            <td>Creación de presupuesto</td>
-                            <td>Presupuestos</td>
-                            <td><span class="badge text-bg-success">Completado</span></td>
-                        </tr>
-                        <tr>
-                            <td>15/02/2026</td>
-                            <td>Emisión de factura</td>
-                            <td>Facturación</td>
-                            <td><span class="badge text-bg-success">Completado</span></td>
-                        </tr>
-                        <tr>
-                            <td>14/02/2026</td>
-                            <td>Actualización de datos</td>
-                            <td>Configuración</td>
-                            <td><span class="badge text-bg-warning">Pendiente</span></td>
-                        </tr>
+                        @foreach (var item in Model.ActividadReciente)
+                        {
+                            <tr>
+                                <td>@item.FechaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><span class="badge text-bg-secondary">@item.Usuario</span></td>
+                                <td>@item.Accion @item.Entidad</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.Detalle) ? "-" : item.Detalle)</td>
+                            </tr>
+                        }
+                        @if (!Model.ActividadReciente.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Sin actividad registrada.</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>

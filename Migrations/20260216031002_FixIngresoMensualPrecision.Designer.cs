@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SysPres.Models;
 
@@ -11,9 +12,11 @@ using SysPres.Models;
 namespace SysPres.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216031002_FixIngresoMensualPrecision")]
+    partial class FixIngresoMensualPrecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -69,23 +72,10 @@ namespace SysPres.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("FullName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Permissions")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Role")
                         .HasMaxLength(100)
@@ -176,149 +166,6 @@ namespace SysPres.Migrations
                     b.ToTable("Clientes");
                 });
 
-            modelBuilder.Entity("SysPres.Models.CompanySettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Ciudad")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CompanySettings");
-                });
-
-            modelBuilder.Entity("SysPres.Models.Pago", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("BalancePendiente")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CambioDevuelto")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CapitalAbonado")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ClienteId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaPagoUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FormatoComprobante")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("InteresAbonado")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("MetodoPago")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("MontoRecibido")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PrestamoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TipoPago")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal>("TotalPagado")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Usuario")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClienteId");
-
-                    b.HasIndex("PrestamoId");
-
-                    b.ToTable("Pagos");
-                });
-
-            modelBuilder.Entity("SysPres.Models.PagoDetalle", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("MontoAplicado")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("NumeroCuota")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PagoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PrestamoCuotaId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("SaldoCuotaAnterior")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("SaldoCuotaRestante")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("TipoAplicacion")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PagoId");
-
-                    b.HasIndex("PrestamoCuotaId");
-
-                    b.ToTable("PagoDetalles");
-                });
-
             modelBuilder.Entity("SysPres.Models.Prestamo", b =>
                 {
                     b.Property<int>("Id")
@@ -404,10 +251,6 @@ namespace SysPres.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("MontoPagado")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("NumeroCuota")
                         .HasColumnType("int");
 
@@ -419,44 +262,6 @@ namespace SysPres.Migrations
                     b.HasIndex("PrestamoId");
 
                     b.ToTable("PrestamoCuotas");
-                });
-
-            modelBuilder.Entity("SysPres.Models.Pago", b =>
-                {
-                    b.HasOne("SysPres.Models.Cliente", "Cliente")
-                        .WithMany()
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SysPres.Models.Prestamo", "Prestamo")
-                        .WithMany()
-                        .HasForeignKey("PrestamoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Cliente");
-
-                    b.Navigation("Prestamo");
-                });
-
-            modelBuilder.Entity("SysPres.Models.PagoDetalle", b =>
-                {
-                    b.HasOne("SysPres.Models.Pago", "Pago")
-                        .WithMany("Detalles")
-                        .HasForeignKey("PagoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SysPres.Models.PrestamoCuota", "PrestamoCuota")
-                        .WithMany()
-                        .HasForeignKey("PrestamoCuotaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Pago");
-
-                    b.Navigation("PrestamoCuota");
                 });
 
             modelBuilder.Entity("SysPres.Models.Prestamo", b =>
@@ -484,11 +289,6 @@ namespace SysPres.Migrations
             modelBuilder.Entity("SysPres.Models.Cliente", b =>
                 {
                     b.Navigation("Prestamos");
-                });
-
-            modelBuilder.Entity("SysPres.Models.Pago", b =>
-                {
-                    b.Navigation("Detalles");
                 });
 
             modelBuilder.Entity("SysPres.Models.Prestamo", b =>

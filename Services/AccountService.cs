@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SysPres.Models;
+using SysPres.Security;
 using SysPres.Services.Interfaces;
 using SysPres.Services.Results;
 
@@ -20,6 +21,11 @@ public class AccountService : IAccountService
         if (user == null)
         {
             return LoginResult.Failure("Usuario o contraseña incorrectos.");
+        }
+
+        if (!user.IsActive)
+        {
+            return LoginResult.Failure("Este usuario está inactivo. Contacte al administrador.");
         }
 
         var valid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
@@ -43,7 +49,8 @@ public class AccountService : IAccountService
         {
             UserName = userName,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            Role = "User"
+            Role = "User",
+            Permissions = string.Join(",", [AppPermissions.Dashboard])
         });
 
         await _db.SaveChangesAsync();

@@ -1,0 +1,102 @@
+@model IEnumerable<SysPres.Models.Cliente>
+@{
+    ViewData["Title"] = "Clientes";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Clientes</h2>
+            <p class="text-muted mb-0">Gestión de clientes y préstamos asociados.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Account" asp-action="Dashboard" class="btn btn-outline-secondary">Volver al panel</a>
+            <a asp-action="Create" class="btn btn-primary">Nuevo cliente</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <label for="searchNombre" class="form-label mb-1">Buscar por nombre</label>
+            <input type="text" id="searchNombre" class="form-control" placeholder="Escribe el nombre del cliente..." />
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table id="clientesTable" class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>Documento</th>
+                        <th>Contacto</th>
+                        <th>Préstamos activos</th>
+                        <th style="width: 250px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td class="row-index"></td>
+                            <td class="fw-semibold">@c.Nombre</td>
+                            <td>@c.Documento</td>
+                            <td>
+                                <div>@(string.IsNullOrWhiteSpace(c.Telefono) ? "-" : c.Telefono)</div>
+                                <small class="text-muted">@(string.IsNullOrWhiteSpace(c.Email) ? "Sin correo" : c.Email)</small>
+                            </td>
+                            <td>
+                                <span class="badge text-bg-primary">@c.Prestamos.Count(p => p.Estado == "Activo")</span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">Ver</a>
+                                    <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                    <form method="post" asp-action="DeleteCliente" asp-route-id="@c.Id" onsubmit="return confirm('¿Eliminar cliente y sus préstamos?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const table = document.getElementById('clientesTable');
+            const search = document.getElementById('searchNombre');
+            if (!table || !search) return;
+
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+            function refreshIndex() {
+                let i = 1;
+                for (const row of rows) {
+                    if (row.style.display === 'none') continue;
+                    const cell = row.querySelector('.row-index');
+                    if (cell) cell.textContent = i++;
+                }
+            }
+
+            function filterRows() {
+                const value = (search.value || '').toLowerCase().trim();
+                for (const row of rows) {
+                    const nameCell = row.children[1];
+                    const name = (nameCell?.textContent || '').toLowerCase();
+                    row.style.display = !value || name.includes(value) ? '' : 'none';
+                }
+                refreshIndex();
+            }
+
+            search.addEventListener('input', filterRows);
+            refreshIndex();
+        })();
+    </script>
+}

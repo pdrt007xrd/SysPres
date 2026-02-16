@@ -1,0 +1,153 @@
+@model SysPres.Models.Cliente
+@{
+    ViewData["Title"] = "Nuevo Cliente";
+}
+
+<div class="container py-3" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Nuevo cliente</h2>
+        <a asp-action="Index" class="btn btn-outline-secondary">Volver</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" asp-action="Create">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <h6 class="mb-3 text-primary">Datos personales</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Nombre" class="form-label"></label>
+                        <input asp-for="Nombre" class="form-control" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Documento" class="form-label"></label>
+                        <input asp-for="Documento" class="form-control" placeholder="001-1811925-4" />
+                        <span asp-validation-for="Documento" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Telefono" class="form-label"></label>
+                        <input asp-for="Telefono" class="form-control" placeholder="809-808-8888" />
+                        <span asp-validation-for="Telefono" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Direccion" class="form-label"></label>
+                        <input asp-for="Direccion" class="form-control" />
+                        <span asp-validation-for="Direccion" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 text-primary">Datos laborales</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Empresa" class="form-label"></label>
+                        <input asp-for="Empresa" class="form-control" />
+                        <span asp-validation-for="Empresa" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Puesto" class="form-label"></label>
+                        <input asp-for="Puesto" class="form-control" />
+                        <span asp-validation-for="Puesto" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="IngresoMensual" class="form-label"></label>
+                        <input asp-for="IngresoMensual" type="number" step="0.01" class="form-control" />
+                        <span asp-validation-for="IngresoMensual" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="MesesLaborando" class="form-label"></label>
+                        <input asp-for="MesesLaborando" type="number" class="form-control" />
+                        <span asp-validation-for="MesesLaborando" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 text-primary">Garante (si aplica)</h6>
+                <div class="form-check mb-3">
+                    <input asp-for="TieneGarante" class="form-check-input" id="tieneGaranteCheck" />
+                    <label asp-for="TieneGarante" class="form-check-label" for="tieneGaranteCheck">Este cliente tiene garante</label>
+                </div>
+
+                <div id="garanteFields" class="row g-3 mb-3" style="display:none;">
+                    <div class="col-md-6">
+                        <label asp-for="GaranteNombre" class="form-label"></label>
+                        <input asp-for="GaranteNombre" class="form-control" />
+                        <span asp-validation-for="GaranteNombre" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GaranteDocumento" class="form-label"></label>
+                        <input asp-for="GaranteDocumento" class="form-control" placeholder="001-1811925-4" />
+                        <span asp-validation-for="GaranteDocumento" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GaranteTelefono" class="form-label"></label>
+                        <input asp-for="GaranteTelefono" class="form-control" placeholder="809-808-8888" />
+                        <span asp-validation-for="GaranteTelefono" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GaranteDireccion" class="form-label"></label>
+                        <input asp-for="GaranteDireccion" class="form-control" />
+                        <span asp-validation-for="GaranteDireccion" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Guardar cliente</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const cedulaInput = document.getElementById('Documento');
+            const telefonoInput = document.getElementById('Telefono');
+            const garanteCedulaInput = document.getElementById('GaranteDocumento');
+            const garanteTelefonoInput = document.getElementById('GaranteTelefono');
+            const tieneGaranteCheck = document.getElementById('tieneGaranteCheck');
+            const garanteFields = document.getElementById('garanteFields');
+
+            function formatCedula(value) {
+                const d = (value || '').replace(/\D/g, '').slice(0, 11);
+                if (d.length <= 3) return d;
+                if (d.length <= 10) return `${d.slice(0, 3)}-${d.slice(3)}`;
+                return `${d.slice(0, 3)}-${d.slice(3, 10)}-${d.slice(10)}`;
+            }
+
+            function formatPhone(value) {
+                const d = (value || '').replace(/\D/g, '').slice(0, 10);
+                if (d.length <= 3) return d;
+                if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+                return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+            }
+
+            function toggleGarante() {
+                if (!tieneGaranteCheck || !garanteFields) return;
+                garanteFields.style.display = tieneGaranteCheck.checked ? 'flex' : 'none';
+            }
+
+            [cedulaInput, garanteCedulaInput].forEach(i => {
+                if (i) i.addEventListener('input', function () { this.value = formatCedula(this.value); });
+            });
+
+            [telefonoInput, garanteTelefonoInput].forEach(i => {
+                if (i) i.addEventListener('input', function () { this.value = formatPhone(this.value); });
+            });
+
+            if (tieneGaranteCheck) {
+                tieneGaranteCheck.addEventListener('change', toggleGarante);
+                toggleGarante();
+            }
+        })();
+    </script>
+}

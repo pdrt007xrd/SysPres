@@ -1,0 +1,195 @@
+@model SysPres.ViewModels.PrestamoCreateViewModel
+@{
+    ViewData["Title"] = "Editar Préstamo";
+    var prestamoId = (int)(ViewData["PrestamoId"] ?? 0);
+}
+
+<div class="container py-3" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Editar préstamo #@prestamoId</h2>
+        <a asp-action="Details" asp-route-id="@prestamoId" class="btn btn-outline-secondary">Volver</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" asp-action="Edit" asp-route-id="@prestamoId">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label asp-for="ClienteId" class="form-label">Cliente</label>
+                        <select asp-for="ClienteId" asp-items="Model.Clientes" class="form-select"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Monto" class="form-label">Monto prestado</label>
+                        <input asp-for="Monto" id="montoInput" type="number" min="0.01" step="0.01" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TasaInteresAnual" class="form-label">Porciento a prestar (%)</label>
+                        <input asp-for="TasaInteresAnual" id="tasaInput" type="number" min="0" max="100" step="0.01" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="NumeroPagos" class="form-label">Cantidad de pagos</label>
+                        <input asp-for="NumeroPagos" id="pagosInput" type="number" min="1" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="FrecuenciaPago" class="form-label">Frecuencia</label>
+                        <select asp-for="FrecuenciaPago" id="frecuenciaInput" class="form-select">
+                            <option>Semanal</option>
+                            <option>Quincenal</option>
+                            <option>Mensual</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="FechaInicio" class="form-label">Fecha inicio</label>
+                        <input asp-for="FechaInicio" id="fechaInicioInput" type="date" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Observaciones" class="form-label"></label>
+                        <textarea asp-for="Observaciones" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="card mt-4 bg-light border-0">
+                    <div class="card-body">
+                        <h6 class="mb-3">Cálculo estimado</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4"><small class="text-muted d-block">Interés</small><strong id="interesPreview">$0.00</strong></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Total a pagar</small><strong id="totalPreview">$0.00</strong></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Valor de cada pago</small><strong id="cuotaPreview">$0.00</strong></div>
+                        </div>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Pago #</th>
+                                        <th>Fecha estimada</th>
+                                        <th class="text-end">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scheduleBody">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">Completa monto, tasa y cantidad de pagos para ver el cronograma.</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="2" class="text-end">Total de cuotas</th>
+                                        <th id="scheduleTotal" class="text-end">$0.00</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    <a asp-action="Details" asp-route-id="@prestamoId" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const monto = document.getElementById('montoInput');
+            const tasa = document.getElementById('tasaInput');
+            const pagos = document.getElementById('pagosInput');
+            const frecuencia = document.getElementById('frecuenciaInput');
+            const fechaInicio = document.getElementById('fechaInicioInput');
+            const interesPreview = document.getElementById('interesPreview');
+            const totalPreview = document.getElementById('totalPreview');
+            const cuotaPreview = document.getElementById('cuotaPreview');
+            const scheduleBody = document.getElementById('scheduleBody');
+            const scheduleTotal = document.getElementById('scheduleTotal');
+
+            function money(v) { return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(v || 0); }
+
+            function parseDate(value) {
+                if (!value) return null;
+                const parts = value.split('-');
+                if (parts.length !== 3) return null;
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                return new Date(y, m, d);
+            }
+
+            function addByFrecuencia(baseDate, frecuenciaValue, salto) {
+                const next = new Date(baseDate);
+                if (frecuenciaValue === 'Semanal') {
+                    next.setDate(next.getDate() + (7 * salto));
+                    return next;
+                }
+                if (frecuenciaValue === 'Quincenal') {
+                    next.setDate(next.getDate() + (15 * salto));
+                    return next;
+                }
+                next.setMonth(next.getMonth() + salto);
+                return next;
+            }
+
+            function formatDate(d) {
+                return new Intl.DateTimeFormat('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+            }
+
+            function renderSchedule(total, n) {
+                if (!scheduleBody || !scheduleTotal) {
+                    return;
+                }
+
+                if (!(n > 0) || !(total > 0)) {
+                    scheduleBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Completa monto, tasa y cantidad de pagos para ver el cronograma.</td></tr>';
+                    scheduleTotal.textContent = money(0);
+                    return;
+                }
+
+                const baseDate = parseDate(fechaInicio ? fechaInicio.value : '');
+                const frecuenciaValue = frecuencia ? frecuencia.value : 'Semanal';
+                const cuotaBase = Math.round((total / n) * 100) / 100;
+                let acumulado = 0;
+                let rows = '';
+
+                for (let i = 1; i <= n; i++) {
+                    const montoCuota = i === n
+                        ? Math.round((total - acumulado) * 100) / 100
+                        : cuotaBase;
+
+                    acumulado = Math.round((acumulado + montoCuota) * 100) / 100;
+
+                    const fecha = baseDate ? formatDate(addByFrecuencia(baseDate, frecuenciaValue, i)) : '-';
+                    rows += `<tr><td>${i}</td><td>${fecha}</td><td class="text-end">${money(montoCuota)}</td></tr>`;
+                }
+
+                scheduleBody.innerHTML = rows;
+                scheduleTotal.textContent = money(acumulado);
+            }
+
+            function calc() {
+                const m = parseFloat(monto.value || '0');
+                const t = parseFloat(tasa.value || '0');
+                const n = parseInt(pagos.value || '0');
+                const interes = m * (t / 100);
+                const total = m + interes;
+                const cuota = n > 0 ? total / n : 0;
+                interesPreview.textContent = money(interes);
+                totalPreview.textContent = money(total);
+                cuotaPreview.textContent = money(cuota);
+                renderSchedule(total, n);
+            }
+            [monto, tasa, pagos].forEach(el => el && el.addEventListener('input', calc));
+            if (frecuencia) {
+                frecuencia.addEventListener('change', calc);
+            }
+            if (fechaInicio) {
+                fechaInicio.addEventListener('change', calc);
+            }
+            calc();
+        })();
+    </script>
+}

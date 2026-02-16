@@ -1,0 +1,120 @@
+@model SysPres.Models.Cliente
+@{
+    ViewData["Title"] = "Detalle Cliente";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">@Model.Nombre</h2>
+            <p class="text-muted mb-0">Documento: @Model.Documento</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Editar cliente</a>
+            <a asp-action="Index" class="btn btn-outline-primary">Volver a clientes</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h6 class="mb-0">Datos del cliente</h6></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Teléfono</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Telefono) ? "-" : Model.Telefono)</dd>
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Email) ? "-" : Model.Email)</dd>
+                        <dt class="col-sm-4">Dirección</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Direccion) ? "-" : Model.Direccion)</dd>
+                        <dt class="col-sm-4">Registro</dt>
+                        <dd class="col-sm-8">@Model.FechaRegistro.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h6 class="mb-0">Datos laborales</h6></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Empresa</dt>
+                        <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.Empresa) ? "-" : Model.Empresa)</dd>
+                        <dt class="col-sm-5">Puesto</dt>
+                        <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.Puesto) ? "-" : Model.Puesto)</dd>
+                        <dt class="col-sm-5">Ingreso</dt>
+                        <dd class="col-sm-7">@(Model.IngresoMensual.HasValue ? Model.IngresoMensual.Value.ToString("C") : "-")</dd>
+                        <dt class="col-sm-5">Antigüedad</dt>
+                        <dd class="col-sm-7">@(Model.MesesLaborando.HasValue ? $"{Model.MesesLaborando.Value} meses" : "-")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h6 class="mb-0">Garante</h6></div>
+                <div class="card-body">
+                    @if (Model.TieneGarante)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Nombre</dt>
+                            <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.GaranteNombre) ? "-" : Model.GaranteNombre)</dd>
+                            <dt class="col-sm-5">Documento</dt>
+                            <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.GaranteDocumento) ? "-" : Model.GaranteDocumento)</dd>
+                            <dt class="col-sm-5">Teléfono</dt>
+                            <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.GaranteTelefono) ? "-" : Model.GaranteTelefono)</dd>
+                            <dt class="col-sm-5">Dirección</dt>
+                            <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.GaranteDireccion) ? "-" : Model.GaranteDireccion)</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Este cliente no tiene garante registrado.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Préstamos activos del cliente</h6>
+            <span class="badge text-bg-primary">@Model.Prestamos.Count(p => p.Estado == "Activo")</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Tasa</th>
+                        <th>Pagos</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Prestamos.OrderByDescending(x => x.Id))
+                    {
+                        <tr>
+                            <td>#@p.Id</td>
+                            <td>@p.FechaInicio.ToString("dd/MM/yyyy")</td>
+                            <td>@p.Monto.ToString("C")</td>
+                            <td>@p.TasaInteresAnual.ToString("0.##")%</td>
+                            <td>@p.NumeroPagos</td>
+                            <td><span class="badge @(p.Estado == "Saldado" ? "text-bg-success" : "text-bg-warning")">@p.Estado</span></td>
+                        </tr>
+                    }
+                    @if (!Model.Prestamos.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No hay préstamos registrados para este cliente.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

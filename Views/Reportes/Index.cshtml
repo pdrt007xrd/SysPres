@@ -1,0 +1,128 @@
+@model SysPres.ViewModels.ReporteResumenClientesViewModel
+@{
+    ViewData["Title"] = "Reportes";
+    var totalPrestamos = Model.Items.Sum(x => x.Prestamos);
+    var totalCapital = Model.Items.Sum(x => x.CapitalPrestado);
+    var totalInteres = Model.Items.Sum(x => x.InteresGenerado);
+    var totalInteresCobrado = Model.Items.Sum(x => x.InteresCobrado);
+    var totalPagosSoloInteres = Model.Items.Sum(x => x.PagosSoloInteres);
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Reportes</h2>
+            <p class="text-muted mb-0">Central de reportes del sistema.</p>
+        </div>
+        <a asp-controller="Account" asp-action="Dashboard" class="btn btn-outline-secondary">Volver al panel</a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h6 class="mb-3">Reportes disponibles</h6>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Clientes" asp-action="ReportePdf" target="_blank" class="btn btn-outline-dark">Clientes PDF</a>
+                <a asp-controller="Prestamos" asp-action="ReportePdf" target="_blank" class="btn btn-outline-dark">Préstamos PDF</a>
+                <a asp-controller="Pagos" asp-action="HistorialPdf" target="_blank" class="btn btn-outline-dark">Histórico de pagos PDF</a>
+                <a asp-action="ResumenClientesPdf" asp-route-clienteId="@Model.ClienteId" target="_blank" class="btn btn-primary">Total por cliente PDF</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label">Filtrar por cliente</label>
+                    <select name="clienteId" class="form-select">
+                        <option value="">Todos los clientes</option>
+                        @foreach (var c in Model.Clientes)
+                        {
+                            var selected = c.Value == (Model.ClienteId?.ToString() ?? string.Empty);
+                            <option value="@c.Value" selected="@(selected ? "selected" : null)">@c.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Aplicar filtro</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Documento</th>
+                        <th class="text-end">Préstamos</th>
+                        <th class="text-end">Total prestado</th>
+                        <th class="text-end">Interés</th>
+                        <th class="text-end">Interés cobrado</th>
+                        <th class="text-end">Pagos solo interés</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.Cliente</td>
+                            <td>@item.Documento</td>
+                            <td class="text-end">@item.Prestamos</td>
+                            <td class="text-end">@item.CapitalPrestado.ToString("C")</td>
+                            <td class="text-end">@item.InteresGenerado.ToString("C")</td>
+                            <td class="text-end">@item.InteresCobrado.ToString("C")</td>
+                            <td class="text-end">@item.PagosSoloInteres</td>
+                            <td class="text-end fw-semibold">@item.TotalAPagar.ToString("C")</td>
+                        </tr>
+                    }
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No hay datos para el filtro seleccionado.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted d-block">Préstamos creados</small>
+                    <div class="fs-5 fw-bold">@totalPrestamos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted d-block">Suma total de capital</small>
+                    <div class="fs-5 fw-bold">@totalCapital.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted d-block">Suma total de interés</small>
+                    <div class="fs-5 fw-bold">@totalInteres.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted d-block">Interés cobrado / Pagos solo interés</small>
+                    <div class="fs-6 fw-bold">@totalInteresCobrado.ToString("C") / @totalPagosSoloInteres</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

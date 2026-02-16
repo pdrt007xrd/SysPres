@@ -1,0 +1,315 @@
+@model SysPres.ViewModels.PagoIndexViewModel
+@{
+    ViewData["Title"] = "Pagos";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Pagos</h2>
+            <p class="text-muted mb-0">Aplica un monto y el sistema lo distribuye automáticamente en las cuotas pendientes.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Historial" class="btn btn-outline-dark">Histórico</a>
+            <a asp-controller="Account" asp-action="Dashboard" class="btn btn-outline-secondary">Volver al panel</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label">Cliente</label>
+                    <input type="hidden" name="clienteId" id="clienteIdHidden" value="@(Model.ClienteId?.ToString() ?? string.Empty)" />
+                    <input type="text" id="clienteNombreInput" class="form-control" list="clientesDatalist" placeholder="Escribe el nombre del cliente..." autocomplete="off" />
+                    <datalist id="clientesDatalist">
+                        @foreach (var c in Model.Clientes)
+                        {
+                            <option value="@c.Text" data-id="@c.Value"></option>
+                        }
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Préstamo</label>
+                    <select name="prestamoId" id="prestamoSelect" class="form-select">
+                        <option value="">Seleccione préstamo...</option>
+                        @foreach (var p in Model.Prestamos)
+                        {
+                            var isSelected = p.Value == (Model.PrestamoId?.ToString() ?? string.Empty);
+                            <option value="@p.Value" selected="@(isSelected ? "selected" : null)">@p.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.PrestamoId.HasValue && Model.CuotasPendientes.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">Registro de pago</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="Registrar">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <input asp-for="ClienteId" type="hidden" />
+                    <input asp-for="PrestamoId" type="hidden" />
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cuota</th>
+                                    <th>Vencimiento</th>
+                                    <th class="text-end">Monto cuota</th>
+                                    <th class="text-end">Pagado</th>
+                                    <th class="text-end">Pendiente</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in Model.CuotasPendientes)
+                                {
+                                    <tr>
+                                        <td>@c.NumeroCuota</td>
+                                        <td>@c.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+                                        <td class="text-end">@c.MontoCuota.ToString("C")</td>
+                                        <td class="text-end">@c.MontoPagado.ToString("C")</td>
+                                        <td class="text-end fw-semibold">@c.SaldoPendiente.ToString("C")</td>
+                                        <td>
+                                            <span class="badge @(c.Estado == "Parcial" ? "text-bg-warning" : "text-bg-secondary")">@c.Estado</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="TipoPago" class="form-label">Tipo de pago</label>
+                            <select asp-for="TipoPago" id="tipoPagoInput" class="form-select">
+                                <option value="Normal">Normal (capital + interés)</option>
+                                <option value="SoloInteres">Solo interés (reestructura)</option>
+                            </select>
+                            <small class="text-muted">Solo interés registra ese pago y reinicia el préstamo al próximo ciclo.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="MontoAplicar" class="form-label">Monto a aplicar al préstamo</label>
+                            <input asp-for="MontoAplicar" id="montoAplicarInput" type="number" min="0.01" step="0.01" class="form-control" />
+                            <span asp-validation-for="MontoAplicar" class="text-danger"></span>
+                            <small id="montoHint" class="text-muted">Se reparte en orden: cuota 1 pendiente, luego cuota 2, etc.</small>
+                            <input type="hidden" id="interesPendienteCiclo" value="@Model.InteresPendienteCiclo" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="MetodoPago" class="form-label">Método de pago</label>
+                            <select asp-for="MetodoPago" id="metodoPagoInput" class="form-select">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Tarjeta">Tarjeta</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="FormatoPdf" class="form-label">Formato del recibo</label>
+                            <select asp-for="FormatoPdf" class="form-select">
+                                <option value="A4">A4</option>
+                                <option value="80mm">80mm térmico</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 cash-only">
+                            <label asp-for="MontoRecibido" class="form-label">Efectivo recibido</label>
+                            <input asp-for="MontoRecibido" id="montoRecibidoInput" type="number" min="0" step="0.01" class="form-control" />
+                            <span asp-validation-for="MontoRecibido" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 cash-only">
+                            <label class="form-label">Cambio devuelto</label>
+                            <input id="cambioDevuelto" type="text" class="form-control" value="$0.00" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Total a aplicar</label>
+                            <input id="totalAplicar" type="text" class="form-control" value="$0.00" readonly />
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-success">Registrar pago y ver recibo PDF</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Limpiar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+    else if (Model.PrestamoId.HasValue)
+    {
+        <div class="alert alert-info">El préstamo seleccionado no tiene cuotas pendientes.</div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const clienteInput = document.getElementById('clienteNombreInput');
+            const clienteIdHidden = document.getElementById('clienteIdHidden');
+            const clienteOptions = Array.from(document.querySelectorAll('#clientesDatalist option'));
+            const prestamoSelect = document.getElementById('prestamoSelect');
+            const tipoPagoInput = document.getElementById('tipoPagoInput');
+            const montoAplicarInput = document.getElementById('montoAplicarInput');
+            const interesPendienteCiclo = document.getElementById('interesPendienteCiclo');
+            const montoHint = document.getElementById('montoHint');
+
+            function resolveCliente() {
+                const value = (clienteInput?.value || '').trim();
+                const normalized = value.toLowerCase();
+                const option = clienteOptions.find(o =>
+                    (o.value || '').toLowerCase() === normalized ||
+                    (o.value || '').toLowerCase().startsWith(normalized));
+                if (option) {
+                    clienteIdHidden.value = option.getAttribute('data-id');
+                } else if (clienteIdHidden) {
+                    clienteIdHidden.value = '';
+                }
+            }
+
+            async function loadPrestamosAndGo() {
+                const clienteId = clienteIdHidden?.value;
+                if (!clienteId) return;
+
+                try {
+                    const res = await fetch(`/Pagos/PrestamosPorCliente?clienteId=${encodeURIComponent(clienteId)}`);
+                    if (!res.ok) return;
+
+                    const data = await res.json();
+                    if (prestamoSelect) {
+                        prestamoSelect.innerHTML = '<option value="">Seleccione préstamo...</option>';
+                        for (const p of (data.prestamos || [])) {
+                            const opt = document.createElement('option');
+                            opt.value = p.id;
+                            opt.textContent = p.text;
+                            prestamoSelect.appendChild(opt);
+                        }
+                    }
+
+                    const nextPrestamoId = data.ultimoPrestamoId;
+                    const target = nextPrestamoId
+                        ? `/Pagos?clienteId=${encodeURIComponent(clienteId)}&prestamoId=${encodeURIComponent(nextPrestamoId)}`
+                        : `/Pagos?clienteId=${encodeURIComponent(clienteId)}`;
+                    window.location.href = target;
+                } catch {
+                    // Ignora error de red y mantiene flujo manual
+                }
+            }
+
+            function restoreCliente() {
+                if (!clienteIdHidden?.value || !clienteInput) return;
+                const selected = clienteOptions.find(o => o.getAttribute('data-id') === clienteIdHidden.value);
+                if (selected) {
+                    clienteInput.value = selected.value;
+                }
+            }
+
+            function money(v) {
+                return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(v || 0);
+            }
+
+            function recalcTotal() {
+                const totalInput = document.getElementById('totalAplicar');
+                const recibidoInput = document.getElementById('montoRecibidoInput');
+                const cambioInput = document.getElementById('cambioDevuelto');
+
+                const total = parseFloat(montoAplicarInput?.value || '0');
+                const totalSeguro = isNaN(total) ? 0 : total;
+                if (totalInput) {
+                    totalInput.value = money(totalSeguro);
+                }
+
+                const recibido = parseFloat(recibidoInput?.value || '0');
+                const cambio = Math.max(0, (isNaN(recibido) ? 0 : recibido) - totalSeguro);
+                if (cambioInput) {
+                    cambioInput.value = money(cambio);
+                }
+            }
+
+            function toggleCashFields() {
+                const metodo = document.getElementById('metodoPagoInput');
+                const isCash = (metodo?.value || 'Efectivo') === 'Efectivo';
+                document.querySelectorAll('.cash-only').forEach(el => {
+                    el.classList.toggle('d-none', !isCash);
+                });
+            }
+
+            function toggleTipoPagoMode() {
+                if (!tipoPagoInput || !montoAplicarInput) return;
+                const isSoloInteres = tipoPagoInput.value === 'SoloInteres';
+                const interes = parseFloat(interesPendienteCiclo?.value || '0');
+                const interesSeguro = isNaN(interes) ? 0 : interes;
+
+                if (isSoloInteres) {
+                    montoAplicarInput.value = interesSeguro.toFixed(2);
+                    montoAplicarInput.readOnly = true;
+                    if (montoHint) {
+                        montoHint.textContent = 'Modo solo interés: se aplica el interés pendiente del ciclo y se reestructura el préstamo.';
+                    }
+                } else {
+                    montoAplicarInput.readOnly = false;
+                    if (montoHint) {
+                        montoHint.textContent = 'Se reparte en orden: cuota 1 pendiente, luego cuota 2, etc.';
+                    }
+                }
+
+                recalcTotal();
+            }
+
+            restoreCliente();
+            if (clienteInput) {
+                clienteInput.addEventListener('input', resolveCliente);
+                clienteInput.addEventListener('change', async function () {
+                    resolveCliente();
+                    await loadPrestamosAndGo();
+                });
+                clienteInput.addEventListener('blur', async function () {
+                    resolveCliente();
+                    if (clienteIdHidden?.value) {
+                        await loadPrestamosAndGo();
+                    }
+                });
+            }
+
+            if (prestamoSelect) {
+                prestamoSelect.addEventListener('change', function () {
+                    const clienteId = clienteIdHidden?.value;
+                    const prestamoId = prestamoSelect.value;
+                    if (!clienteId) return;
+                    const target = prestamoId
+                        ? `/Pagos?clienteId=${encodeURIComponent(clienteId)}&prestamoId=${encodeURIComponent(prestamoId)}`
+                        : `/Pagos?clienteId=${encodeURIComponent(clienteId)}`;
+                    window.location.href = target;
+                });
+            }
+
+            if (montoAplicarInput) {
+                montoAplicarInput.addEventListener('input', recalcTotal);
+            }
+            const recibidoInput = document.getElementById('montoRecibidoInput');
+            if (recibidoInput) {
+                recibidoInput.addEventListener('input', recalcTotal);
+            }
+            const metodo = document.getElementById('metodoPagoInput');
+            if (metodo) {
+                metodo.addEventListener('change', toggleCashFields);
+            }
+            if (tipoPagoInput) {
+                tipoPagoInput.addEventListener('change', toggleTipoPagoMode);
+            }
+            toggleCashFields();
+            toggleTipoPagoMode();
+            recalcTotal();
+        })();
+    </script>
+}
