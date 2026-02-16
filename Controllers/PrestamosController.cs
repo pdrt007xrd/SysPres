@@ -62,7 +62,7 @@ public class PrestamosController : Controller
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9));
+                page.DefaultTextStyle(x => x.FontSize(8));
 
                 page.Header().Column(header =>
                 {
@@ -76,15 +76,15 @@ public class PrestamosController : Controller
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.ConstantColumn(48); // ID
-                            columns.RelativeColumn(2); // Cliente
-                            columns.ConstantColumn(82); // Monto
-                            columns.ConstantColumn(62); // Tasa
+                            columns.ConstantColumn(40); // ID
+                            columns.ConstantColumn(125); // Cliente
+                            columns.ConstantColumn(72); // Monto
+                            columns.ConstantColumn(54); // Tasa
                             columns.ConstantColumn(78); // Frecuencia
-                            columns.ConstantColumn(82); // Interes cobrado
-                            columns.ConstantColumn(82); // Saldo
-                            columns.ConstantColumn(62); // Solo interes
-                            columns.ConstantColumn(68); // Estado
+                            columns.ConstantColumn(78); // Interes cobrado
+                            columns.ConstantColumn(78); // Saldo
+                            columns.ConstantColumn(58); // Solo interes
+                            columns.ConstantColumn(60); // Estado
                         });
 
                         table.Header(header =>
@@ -106,12 +106,12 @@ public class PrestamosController : Controller
                             var pagosData = pagosPorPrestamo.TryGetValue(prestamo.Id, out var value) ? value : null;
 
                             table.Cell().Element(CellBody).Text($"#{prestamo.Id}");
-                            table.Cell().Element(CellBody).Text(Limit(prestamo.Cliente?.Nombre ?? "-", 35));
-                            table.Cell().Element(CellBody).AlignRight().Text(prestamo.Monto.ToString("C"));
+                            table.Cell().Element(CellBody).Text(Limit(prestamo.Cliente?.Nombre ?? "-", 24));
+                            table.Cell().Element(CellBody).AlignRight().Text(prestamo.Monto.ToString("C0"));
                             table.Cell().Element(CellBody).AlignRight().Text($"{prestamo.TasaInteresAnual:0.##}%");
                             table.Cell().Element(CellBody).Text(Limit(frecuencia, 16));
-                            table.Cell().Element(CellBody).AlignRight().Text((pagosData?.InteresCobrado ?? 0m).ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(prestamo.SaldoPendiente.ToString("C"));
+                            table.Cell().Element(CellBody).AlignRight().Text((pagosData?.InteresCobrado ?? 0m).ToString("C0"));
+                            table.Cell().Element(CellBody).AlignRight().Text(prestamo.SaldoPendiente.ToString("C0"));
                             table.Cell().Element(CellBody).AlignRight().Text((pagosData?.PagosSoloInteres ?? 0).ToString());
                             table.Cell().Element(CellBody).Text(prestamo.Estado);
                         }
@@ -133,18 +133,21 @@ public class PrestamosController : Controller
         Response.Headers.ContentDisposition = "inline; filename=reporte-prestamos.pdf";
         return File(pdfBytes, "application/pdf");
 
-        static IContainer CellHeader(IContainer container)
-        {
-            return container
-                .Background(Colors.Grey.Lighten3)
-                .Padding(6)
-                .DefaultTextStyle(x => x.SemiBold());
-        }
+        static IContainer CellHeader(IContainer container) => container
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
 
-        static IContainer CellBody(IContainer container)
-        {
-            return container.Padding(6);
-        }
+        static IContainer CellBody(IContainer container) => container
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
 
         static string Limit(string value, int max)
         {
@@ -183,9 +186,9 @@ public class PrestamosController : Controller
             return View(model);
         }
 
-        var montoInteres = Math.Round(model.Monto * (model.TasaInteresAnual / 100m), 2);
-        var totalPagar = Math.Round(model.Monto + montoInteres, 2);
-        var valorCuota = Math.Round(totalPagar / model.NumeroPagos, 2);
+        var montoInteres = CalcularInteresPorTasaMensual(model.Monto, model.TasaInteresAnual, model.NumeroPagos, model.FrecuenciaPago);
+        var totalPagar = Math.Round(model.Monto + montoInteres, 0);
+        var valorCuota = Math.Round(totalPagar / model.NumeroPagos, 0);
 
         var prestamo = new Prestamo
         {
@@ -210,7 +213,7 @@ public class PrestamosController : Controller
         _context.PrestamoCuotas.AddRange(cuotas);
         await _context.SaveChangesAsync();
 
-        await RegistrarActividadAsync("Creó", "Préstamo", $"Prestamo #{prestamo.Id}", $"Cliente {cliente.Nombre}, monto {prestamo.Monto:C}");
+        await RegistrarActividadAsync("Creó", "Préstamo", $"Prestamo #{prestamo.Id}", $"Cliente {cliente.Nombre}, monto {prestamo.Monto:C0}");
         SetToast("Préstamo creado correctamente.", "success", "Éxito");
 
         return RedirectToAction(nameof(Details), new { id = prestamo.Id });
@@ -230,6 +233,90 @@ public class PrestamosController : Controller
         }
 
         return View(prestamo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CronogramaPdf(int id)
+    {
+        var prestamo = await _context.Prestamos
+            .AsNoTracking()
+            .Include(p => p.Cliente)
+            .Include(p => p.Cuotas.OrderBy(c => c.NumeroCuota))
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (prestamo == null)
+        {
+            return NotFound();
+        }
+
+        var generado = DateTime.Now;
+
+        var pdf = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(24);
+                page.DefaultTextStyle(x => x.FontSize(8));
+
+                page.Header().Column(header =>
+                {
+                    header.Item().Text($"Cronograma de Préstamo #{prestamo.Id}").FontSize(18).Bold();
+                    header.Item().Text($"Cliente: {prestamo.Cliente?.Nombre ?? "-"}");
+                    header.Item().Text($"Frecuencia: {prestamo.FrecuenciaPago} | Pagos: {prestamo.NumeroPagos}");
+                    header.Item().Text($"Generado: {generado:dd/MM/yyyy HH:mm}").FontColor(Colors.Grey.Darken2);
+                });
+
+                page.Content().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.ConstantColumn(44);
+                        c.ConstantColumn(64);
+                        c.ConstantColumn(120);
+                        c.ConstantColumn(100);
+                        c.RelativeColumn(1);
+                    });
+
+                    table.Header(h =>
+                    {
+                        h.Cell().Element(CellHeader).AlignCenter().Text("✓");
+                        h.Cell().Element(CellHeader).Text("Cuota");
+                        h.Cell().Element(CellHeader).Text("Vencimiento");
+                        h.Cell().Element(CellHeader).AlignRight().Text("Monto");
+                        h.Cell().Element(CellHeader).Text("Estado");
+                    });
+
+                    foreach (var cuota in prestamo.Cuotas.OrderBy(c => c.NumeroCuota))
+                    {
+                        table.Cell().Element(CellBody).AlignCenter().Text("□");
+                        table.Cell().Element(CellBody).Text(cuota.NumeroCuota.ToString());
+                        table.Cell().Element(CellBody).Text(cuota.FechaVencimiento.ToString("dd/MM/yyyy"));
+                        table.Cell().Element(CellBody).AlignRight().Text(cuota.MontoCuota.ToString("C0"));
+                        table.Cell().Element(CellBody).Text(cuota.Estado);
+                    }
+                });
+            });
+        }).GeneratePdf();
+
+        Response.Headers.ContentDisposition = $"inline; filename=cronograma-prestamo-{prestamo.Id}.pdf";
+        return File(pdf, "application/pdf");
+
+        static IContainer CellHeader(IContainer c) => c
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
+
+        static IContainer CellBody(IContainer c) => c
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
     }
 
     [HttpPost]
@@ -262,7 +349,7 @@ public class PrestamosController : Controller
         cuota.MontoPagado = cuota.MontoCuota;
         cuota.FechaPago = DateTime.Now;
 
-        prestamo.SaldoPendiente = Math.Round(prestamo.Cuotas.Sum(c => Math.Max(0, c.MontoCuota - c.MontoPagado)), 2);
+        prestamo.SaldoPendiente = Math.Round(prestamo.Cuotas.Sum(c => Math.Max(0, c.MontoCuota - c.MontoPagado)), 0);
         prestamo.Estado = prestamo.SaldoPendiente <= 0 ? "Saldado" : "Activo";
 
         await _context.SaveChangesAsync();
@@ -302,8 +389,8 @@ public class PrestamosController : Controller
             .Where(p => p.PrestamoId == id && p.FechaPagoUtc >= fechaInicioUtc)
             .SumAsync(p => p.CapitalAbonado);
 
-        var interesPendiente = Math.Max(0, Math.Round(prestamo.MontoInteres - interesesPagados, 2));
-        var capitalPendiente = Math.Max(0, Math.Round(prestamo.Monto - capitalPagado, 2));
+        var interesPendiente = Math.Max(0, Math.Round(prestamo.MontoInteres - interesesPagados, 0));
+        var capitalPendiente = Math.Max(0, Math.Round(prestamo.Monto - capitalPagado, 0));
 
         if (interesPendiente <= 0)
         {
@@ -333,9 +420,9 @@ public class PrestamosController : Controller
         var proximaFechaVencimiento = AddByFrecuencia(nuevaFechaInicio, prestamo.FrecuenciaPago, 1);
         prestamo.FechaInicio = nuevaFechaInicio;
         prestamo.Monto = capitalPendiente;
-        prestamo.MontoInteres = Math.Round(capitalPendiente * (prestamo.TasaInteresAnual / 100m), 2);
-        prestamo.TotalAPagar = Math.Round(prestamo.Monto + prestamo.MontoInteres, 2);
-        prestamo.ValorCuota = Math.Round(prestamo.TotalAPagar / prestamo.NumeroPagos, 2);
+        prestamo.MontoInteres = Math.Round(capitalPendiente * (prestamo.TasaInteresAnual / 100m), 0);
+        prestamo.TotalAPagar = Math.Round(prestamo.Monto + prestamo.MontoInteres, 0);
+        prestamo.ValorCuota = Math.Round(prestamo.TotalAPagar / prestamo.NumeroPagos, 0);
         prestamo.SaldoPendiente = prestamo.TotalAPagar;
         prestamo.Estado = "Activo";
 
@@ -349,7 +436,7 @@ public class PrestamosController : Controller
             "Modificó",
             "Préstamo",
             $"Prestamo #{prestamo.Id}",
-            $"Reestructurado por pago solo interés ({interesPendiente:C}). Próximo vencimiento: {proximaFechaVencimiento:dd/MM/yyyy}");
+            $"Reestructurado por pago solo interés ({interesPendiente:C0}). Próximo vencimiento: {proximaFechaVencimiento:dd/MM/yyyy}");
 
         SetToast("Préstamo reestructurado. Se registró pago solo interés y se reinició al próximo ciclo.", "success", "Éxito");
         return RedirectToAction(nameof(Details), new { id });
@@ -420,9 +507,9 @@ public class PrestamosController : Controller
             return View(model);
         }
 
-        var montoInteres = Math.Round(model.Monto * (model.TasaInteresAnual / 100m), 2);
-        var totalPagar = Math.Round(model.Monto + montoInteres, 2);
-        var valorCuota = Math.Round(totalPagar / model.NumeroPagos, 2);
+        var montoInteres = CalcularInteresPorTasaMensual(model.Monto, model.TasaInteresAnual, model.NumeroPagos, model.FrecuenciaPago);
+        var totalPagar = Math.Round(model.Monto + montoInteres, 0);
+        var valorCuota = Math.Round(totalPagar / model.NumeroPagos, 0);
 
         prestamo.ClienteId = model.ClienteId;
         prestamo.Monto = model.Monto;
@@ -500,10 +587,25 @@ public class PrestamosController : Controller
     {
         return frecuencia switch
         {
+            "Diario" => baseDate.AddDays(salto),
             "Semanal" => baseDate.AddDays(7 * salto),
             "Quincenal" => baseDate.AddDays(15 * salto),
             _ => baseDate.AddMonths(salto)
         };
+    }
+
+    private static decimal CalcularInteresPorTasaMensual(decimal monto, decimal tasaMensual, int numeroPagos, string frecuencia)
+    {
+        var factorMes = frecuencia switch
+        {
+            "Diario" => 1m / 30m,
+            "Semanal" => 7m / 30m,
+            "Quincenal" => 15m / 30m,
+            _ => 1m
+        };
+
+        var mesesEquivalentes = numeroPagos * factorMes;
+        return Math.Round(monto * (tasaMensual / 100m) * mesesEquivalentes, 0);
     }
 
     private async Task LoadClientes(PrestamoCreateViewModel vm)

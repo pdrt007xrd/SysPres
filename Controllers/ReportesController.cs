@@ -43,7 +43,7 @@ public class ReportesController : Controller
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9));
+                page.DefaultTextStyle(x => x.FontSize(8));
 
                 page.Header().Column(header =>
                 {
@@ -58,13 +58,13 @@ public class ReportesController : Controller
                     {
                         table.ColumnsDefinition(c =>
                         {
-                            c.RelativeColumn(2);
-                            c.ConstantColumn(90);
-                            c.ConstantColumn(60);
-                            c.ConstantColumn(95);
-                            c.ConstantColumn(95);
-                            c.ConstantColumn(95);
-                            c.ConstantColumn(95);
+                            c.ConstantColumn(130); // Cliente
+                            c.ConstantColumn(90); // Documento
+                            c.ConstantColumn(58); // Prestamos
+                            c.ConstantColumn(80); // Prestado
+                            c.ConstantColumn(80); // Interes
+                            c.ConstantColumn(85); // Interes cobrado
+                            c.ConstantColumn(80); // Total
                         });
 
                         table.Header(h =>
@@ -80,19 +80,19 @@ public class ReportesController : Controller
 
                         foreach (var item in vm.Items)
                         {
-                            table.Cell().Element(CellBody).Text(item.Cliente);
+                            table.Cell().Element(CellBody).Text(Limit(item.Cliente, 26));
                             table.Cell().Element(CellBody).Text(item.Documento);
                             table.Cell().Element(CellBody).AlignRight().Text(item.Prestamos.ToString());
-                            table.Cell().Element(CellBody).AlignRight().Text(item.CapitalPrestado.ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(item.InteresGenerado.ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(item.InteresCobrado.ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(item.TotalAPagar.ToString("C"));
+                            table.Cell().Element(CellBody).AlignRight().Text(item.CapitalPrestado.ToString("C0"));
+                            table.Cell().Element(CellBody).AlignRight().Text(item.InteresGenerado.ToString("C0"));
+                            table.Cell().Element(CellBody).AlignRight().Text(item.InteresCobrado.ToString("C0"));
+                            table.Cell().Element(CellBody).AlignRight().Text(item.TotalAPagar.ToString("C0"));
                         }
                     });
 
                     column.Item().PaddingTop(10).Text($"Total préstamos creados: {totalPrestamos}").Bold();
-                    column.Item().Text($"Suma total de capital: {totalCapital:C}").Bold();
-                    column.Item().Text($"Suma total de interés: {totalInteres:C}").Bold();
+                    column.Item().Text($"Suma total de capital: {totalCapital:C0}").Bold();
+                    column.Item().Text($"Suma total de interés: {totalInteres:C0}").Bold();
                 });
             });
         }).GeneratePdf();
@@ -100,8 +100,31 @@ public class ReportesController : Controller
         Response.Headers.ContentDisposition = "inline; filename=reporte-total-clientes.pdf";
         return File(pdf, "application/pdf");
 
-        static IContainer CellHeader(IContainer c) => c.Background(Colors.Grey.Lighten3).Padding(5).DefaultTextStyle(x => x.SemiBold());
-        static IContainer CellBody(IContainer c) => c.Padding(5);
+        static IContainer CellHeader(IContainer c) => c
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
+
+        static IContainer CellBody(IContainer c) => c
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
+
+        static string Limit(string value, int max)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "-";
+            }
+
+            return value.Length <= max ? value : value[..max];
+        }
     }
 
     private async Task<ReporteResumenClientesViewModel> BuildResumenAsync(int? clienteId)

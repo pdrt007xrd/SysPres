@@ -47,6 +47,7 @@ public class ConfiguracionController : Controller
         entity.Direccion = empresaForm.Direccion;
         entity.Telefono = empresaForm.Telefono;
         entity.Ciudad = empresaForm.Ciudad;
+        entity.Rnc = empresaForm.Rnc;
 
         await _context.SaveChangesAsync();
         SetToastSuccess("Datos de empresa actualizados.");
@@ -133,7 +134,8 @@ public class ConfiguracionController : Controller
             Nombre = string.IsNullOrWhiteSpace(source?.Empresa.Nombre) ? empresa.Nombre : source.Empresa.Nombre,
             Direccion = source?.Empresa.Direccion ?? empresa.Direccion,
             Telefono = source?.Empresa.Telefono ?? empresa.Telefono,
-            Ciudad = source?.Empresa.Ciudad ?? empresa.Ciudad
+            Ciudad = source?.Empresa.Ciudad ?? empresa.Ciudad,
+            Rnc = source?.Empresa.Rnc ?? empresa.Rnc
         };
 
         vm.Usuarios = users.Select(u => new UsuarioPermisoViewModel

@@ -8,7 +8,7 @@ public class PrestamoCreateViewModel
     [Required]
     public int ClienteId { get; set; }
 
-    [Range(0.01, 999999999)]
+    [Range(1, 999999999)]
     public decimal Monto { get; set; }
 
     [Range(0, 100)]

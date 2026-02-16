@@ -36,10 +36,10 @@
                         <tr>
                             <td>#@p.Id</td>
                             <td>@(p.Cliente?.Nombre ?? "-")</td>
-                            <td>@p.Monto.ToString("C")</td>
+                            <td>@p.Monto.ToString("C0")</td>
                             <td>@p.TasaInteresAnual.ToString("0.##")%</td>
                             <td>@p.FrecuenciaPago (@p.NumeroPagos pagos)</td>
-                            <td>@p.SaldoPendiente.ToString("C")</td>
+                            <td>@p.SaldoPendiente.ToString("C0")</td>
                             <td><span class="badge @(p.Estado == "Saldado" ? "text-bg-success" : "text-bg-warning")">@p.Estado</span></td>
                             <td>
                                 <div class="d-flex gap-2">

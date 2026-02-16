@@ -11,7 +11,7 @@ public class PagoIndexViewModel
     [Required]
     public int? PrestamoId { get; set; }
 
-    [Range(0.01, 999999999)]
+    [Range(1, 999999999)]
     public decimal MontoAplicar { get; set; }
 
     [Required]

@@ -73,11 +73,11 @@
                             <td>@item.Cliente</td>
                             <td>@item.Documento</td>
                             <td class="text-end">@item.Prestamos</td>
-                            <td class="text-end">@item.CapitalPrestado.ToString("C")</td>
-                            <td class="text-end">@item.InteresGenerado.ToString("C")</td>
-                            <td class="text-end">@item.InteresCobrado.ToString("C")</td>
+                            <td class="text-end">@item.CapitalPrestado.ToString("C0")</td>
+                            <td class="text-end">@item.InteresGenerado.ToString("C0")</td>
+                            <td class="text-end">@item.InteresCobrado.ToString("C0")</td>
                             <td class="text-end">@item.PagosSoloInteres</td>
-                            <td class="text-end fw-semibold">@item.TotalAPagar.ToString("C")</td>
+                            <td class="text-end fw-semibold">@item.TotalAPagar.ToString("C0")</td>
                         </tr>
                     }
                     @if (!Model.Items.Any())
@@ -104,7 +104,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <small class="text-muted d-block">Suma total de capital</small>
-                    <div class="fs-5 fw-bold">@totalCapital.ToString("C")</div>
+                    <div class="fs-5 fw-bold">@totalCapital.ToString("C0")</div>
                 </div>
             </div>
         </div>
@@ -112,7 +112,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <small class="text-muted d-block">Suma total de interés</small>
-                    <div class="fs-5 fw-bold">@totalInteres.ToString("C")</div>
+                    <div class="fs-5 fw-bold">@totalInteres.ToString("C0")</div>
                 </div>
             </div>
         </div>
@@ -120,7 +120,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <small class="text-muted d-block">Interés cobrado / Pagos solo interés</small>
-                    <div class="fs-6 fw-bold">@totalInteresCobrado.ToString("C") / @totalPagosSoloInteres</div>
+                    <div class="fs-6 fw-bold">@totalInteresCobrado.ToString("C0") / @totalPagosSoloInteres</div>
                 </div>
             </div>
         </div>

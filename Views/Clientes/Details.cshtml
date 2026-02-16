@@ -44,7 +44,7 @@
                         <dt class="col-sm-5">Puesto</dt>
                         <dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.Puesto) ? "-" : Model.Puesto)</dd>
                         <dt class="col-sm-5">Ingreso</dt>
-                        <dd class="col-sm-7">@(Model.IngresoMensual.HasValue ? Model.IngresoMensual.Value.ToString("C") : "-")</dd>
+                        <dd class="col-sm-7">@(Model.IngresoMensual.HasValue ? Model.IngresoMensual.Value.ToString("C0") : "-")</dd>
                         <dt class="col-sm-5">Antigüedad</dt>
                         <dd class="col-sm-7">@(Model.MesesLaborando.HasValue ? $"{Model.MesesLaborando.Value} meses" : "-")</dd>
                     </dl>
@@ -101,7 +101,7 @@
                         <tr>
                             <td>#@p.Id</td>
                             <td>@p.FechaInicio.ToString("dd/MM/yyyy")</td>
-                            <td>@p.Monto.ToString("C")</td>
+                            <td>@p.Monto.ToString("C0")</td>
                             <td>@p.TasaInteresAnual.ToString("0.##")%</td>
                             <td>@p.NumeroPagos</td>
                             <td><span class="badge @(p.Estado == "Saldado" ? "text-bg-success" : "text-bg-warning")">@p.Estado</span></td>

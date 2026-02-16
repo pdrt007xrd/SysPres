@@ -18,4 +18,7 @@ public class CompanySettings
 
     [MaxLength(100)]
     public string? Ciudad { get; set; }
+
+    [MaxLength(20)]
+    public string? Rnc { get; set; }
 }

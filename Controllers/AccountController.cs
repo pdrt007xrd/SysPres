@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using SysPres.Models;
 using SysPres.Security;
 using SysPres.Services.Interfaces;
@@ -146,11 +149,101 @@ public class AccountController : Controller
             PrestamosEnAtraso = prestamosEnAtraso,
             TotalAtrasado = totalAtrasado,
             CapitalPrestado = capitalPrestado,
-            InteresRecolectado = Math.Round(interesRecolectado, 2),
+            InteresRecolectado = Math.Round(interesRecolectado, 0),
             MontoGlobalCobrar = montoGlobalCobrar,
             ActividadReciente = actividad
         };
 
         return View(vm);
+    }
+
+    [HttpGet]
+    [Authorize(Policy = "CanDashboard")]
+    public async Task<IActionResult> ActividadPdf()
+    {
+        var actividad = await _context.ActivityLogs
+            .AsNoTracking()
+            .OrderByDescending(a => a.FechaUtc)
+            .Take(300)
+            .ToListAsync();
+
+        var generado = DateTime.Now;
+
+        var pdf = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(24);
+                page.DefaultTextStyle(x => x.FontSize(8));
+
+                page.Header().Column(header =>
+                {
+                    header.Item().Text("Actividad Reciente").FontSize(18).Bold();
+                    header.Item().Text($"Generado: {generado:dd/MM/yyyy HH:mm}").FontColor(Colors.Grey.Darken2);
+                });
+
+                page.Content().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.ConstantColumn(88);
+                        c.ConstantColumn(90);
+                        c.ConstantColumn(120);
+                        c.RelativeColumn(1);
+                    });
+
+                    table.Header(h =>
+                    {
+                        h.Cell().Element(CellHeader).Text("Fecha");
+                        h.Cell().Element(CellHeader).Text("Usuario");
+                        h.Cell().Element(CellHeader).Text("Acción");
+                        h.Cell().Element(CellHeader).Text("Detalle");
+                    });
+
+                    foreach (var item in actividad)
+                    {
+                        table.Cell().Element(CellBody).Text(item.FechaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
+                        table.Cell().Element(CellBody).Text(item.Usuario);
+                        table.Cell().Element(CellBody).Text($"{item.Accion} {item.Entidad}");
+                        table.Cell().Element(CellBody).Text(Limit(string.IsNullOrWhiteSpace(item.Detalle) ? "-" : item.Detalle, 85));
+                    }
+
+                    if (!actividad.Any())
+                    {
+                        table.Cell().ColumnSpan(4).Element(CellBody).AlignCenter().Text("Sin actividad registrada.");
+                    }
+                });
+            });
+        }).GeneratePdf();
+
+        Response.Headers.ContentDisposition = "inline; filename=actividad-reciente.pdf";
+        return File(pdf, "application/pdf");
+
+        static IContainer CellHeader(IContainer c) => c
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
+
+        static IContainer CellBody(IContainer c) => c
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
+
+        static string Limit(string value, int max)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "-";
+            }
+
+            return value.Length <= max ? value : value[..max];
+        }
     }
 }

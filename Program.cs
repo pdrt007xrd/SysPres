@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
+using System.Globalization;
 using SysPres.Models;
 using SysPres.Security;
 using SysPres.Services;
@@ -10,6 +12,12 @@ QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
+var culturaRd = new CultureInfo("es-DO");
+culturaRd.NumberFormat.CurrencySymbol = "RD$";
+culturaRd.NumberFormat.CurrencyDecimalDigits = 0;
+CultureInfo.DefaultThreadCurrentCulture = culturaRd;
+CultureInfo.DefaultThreadCurrentUICulture = culturaRd;
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -43,8 +51,16 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("CanConfiguracion", policy => policy.RequireRole("Admin"));
 
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(culturaRd);
+    options.SupportedCultures = [culturaRd];
+    options.SupportedUICultures = [culturaRd];
+});
 
 var app = builder.Build();
+
+app.UseRequestLocalization();
 
 if (!app.Environment.IsDevelopment())
 {

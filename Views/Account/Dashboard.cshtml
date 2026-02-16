@@ -94,7 +94,7 @@
                 <div class="card shadow-sm h-100 border-warning">
                     <div class="card-body">
                         <h6 class="text-muted mb-1">Total atrasado</h6>
-                        <div class="fs-4 fw-bold text-warning">@Model.TotalAtrasado.ToString("C")</div>
+                        <div class="fs-4 fw-bold text-warning">@Model.TotalAtrasado.ToString("C0")</div>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h6 class="text-muted mb-1">Capital prestado</h6>
-                        <div class="fs-4 fw-bold">@Model.CapitalPrestado.ToString("C")</div>
+                        <div class="fs-4 fw-bold">@Model.CapitalPrestado.ToString("C0")</div>
                     </div>
                 </div>
             </div>
@@ -110,7 +110,7 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h6 class="text-muted mb-1">Monto global a cobrar</h6>
-                        <div class="fs-4 fw-bold text-warning">@Model.MontoGlobalCobrar.ToString("C")</div>
+                        <div class="fs-4 fw-bold text-warning">@Model.MontoGlobalCobrar.ToString("C0")</div>
                     </div>
                 </div>
             </div>
@@ -118,19 +118,20 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h6 class="text-muted mb-1">Interés recolectado</h6>
-                        <div class="fs-4 fw-bold">@Model.InteresRecolectado.ToString("C")</div>
+                        <div class="fs-4 fw-bold">@Model.InteresRecolectado.ToString("C0")</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="card shadow-sm">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Actividad reciente</h6>
+                <a asp-action="ActividadPdf" target="_blank" class="btn btn-sm btn-outline-dark">PDF / Imprimir</a>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+            <div class="table-responsive border-top" style="max-height: 360px; overflow-y: auto;">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light" style="position: sticky; top: 0; z-index: 2;">
                         <tr>
                             <th>Fecha</th>
                             <th>Usuario</th>

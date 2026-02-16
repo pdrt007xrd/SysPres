@@ -23,11 +23,11 @@
                     </div>
                     <div class="col-md-6">
                         <label asp-for="Monto" class="form-label">Monto prestado</label>
-                        <input asp-for="Monto" id="montoInput" type="number" min="0.01" step="0.01" class="form-control" />
+                        <input asp-for="Monto" id="montoInput" type="number" min="1" step="1" class="form-control" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="TasaInteresAnual" class="form-label">Porciento a prestar (%)</label>
-                        <input asp-for="TasaInteresAnual" id="tasaInput" type="number" min="0" max="100" step="0.01" class="form-control" />
+                        <label asp-for="TasaInteresAnual" class="form-label">Porciento mensual a prestar (%)</label>
+                        <input asp-for="TasaInteresAnual" id="tasaInput" type="number" min="0" max="100" step="1" class="form-control" />
                     </div>
                     <div class="col-md-4">
                         <label asp-for="NumeroPagos" class="form-label">Cantidad de pagos</label>
@@ -36,6 +36,7 @@
                     <div class="col-md-4">
                         <label asp-for="FrecuenciaPago" class="form-label">Frecuencia</label>
                         <select asp-for="FrecuenciaPago" id="frecuenciaInput" class="form-select">
+                            <option>Diario</option>
                             <option>Semanal</option>
                             <option>Quincenal</option>
                             <option>Mensual</option>
@@ -55,9 +56,9 @@
                     <div class="card-body">
                         <h6 class="mb-3">Cálculo estimado</h6>
                         <div class="row g-3">
-                            <div class="col-md-4"><small class="text-muted d-block">Interés</small><strong id="interesPreview">$0.00</strong></div>
-                            <div class="col-md-4"><small class="text-muted d-block">Total a pagar</small><strong id="totalPreview">$0.00</strong></div>
-                            <div class="col-md-4"><small class="text-muted d-block">Valor de cada pago</small><strong id="cuotaPreview">$0.00</strong></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Interés</small><strong id="interesPreview">$0</strong></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Total a pagar</small><strong id="totalPreview">$0</strong></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Valor de cada pago</small><strong id="cuotaPreview">$0</strong></div>
                         </div>
                         <div class="table-responsive mt-3">
                             <table class="table table-sm align-middle mb-0">
@@ -76,7 +77,7 @@
                                 <tfoot>
                                     <tr>
                                         <th colspan="2" class="text-end">Total de cuotas</th>
-                                        <th id="scheduleTotal" class="text-end">$0.00</th>
+                                        <th id="scheduleTotal" class="text-end">$0</th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -108,7 +109,14 @@
             const scheduleBody = document.getElementById('scheduleBody');
             const scheduleTotal = document.getElementById('scheduleTotal');
 
-            function money(v) { return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(v || 0); }
+            function money(v) {
+                return new Intl.NumberFormat('es-DO', {
+                    style: 'currency',
+                    currency: 'DOP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(v || 0);
+            }
 
             function parseDate(value) {
                 if (!value) return null;
@@ -122,6 +130,10 @@
 
             function addByFrecuencia(baseDate, frecuenciaValue, salto) {
                 const next = new Date(baseDate);
+                if (frecuenciaValue === 'Diario') {
+                    next.setDate(next.getDate() + salto);
+                    return next;
+                }
                 if (frecuenciaValue === 'Semanal') {
                     next.setDate(next.getDate() + (7 * salto));
                     return next;
@@ -151,16 +163,16 @@
 
                 const baseDate = parseDate(fechaInicio ? fechaInicio.value : '');
                 const frecuenciaValue = frecuencia ? frecuencia.value : 'Semanal';
-                const cuotaBase = Math.round((total / n) * 100) / 100;
+                const cuotaBase = Math.round(total / n);
                 let acumulado = 0;
                 let rows = '';
 
                 for (let i = 1; i <= n; i++) {
                     const montoCuota = i === n
-                        ? Math.round((total - acumulado) * 100) / 100
+                        ? Math.round(total - acumulado)
                         : cuotaBase;
 
-                    acumulado = Math.round((acumulado + montoCuota) * 100) / 100;
+                    acumulado = Math.round(acumulado + montoCuota);
 
                     const fecha = baseDate ? formatDate(addByFrecuencia(baseDate, frecuenciaValue, i)) : '-';
                     rows += `<tr><td>${i}</td><td>${fecha}</td><td class="text-end">${money(montoCuota)}</td></tr>`;
@@ -174,9 +186,18 @@
                 const m = parseFloat(monto.value || '0');
                 const t = parseFloat(tasa.value || '0');
                 const n = parseInt(pagos.value || '0');
-                const interes = m * (t / 100);
-                const total = m + interes;
-                const cuota = n > 0 ? total / n : 0;
+                const frecuenciaValue = frecuencia ? frecuencia.value : 'Semanal';
+                const factorMes = frecuenciaValue === 'Diario'
+                    ? (1 / 30)
+                    : frecuenciaValue === 'Semanal'
+                        ? (7 / 30)
+                        : frecuenciaValue === 'Quincenal'
+                            ? (15 / 30)
+                            : 1;
+                const mesesEquivalentes = n * factorMes;
+                const interes = Math.round(m * (t / 100) * mesesEquivalentes);
+                const total = Math.round(m + interes);
+                const cuota = n > 0 ? Math.round(total / n) : 0;
                 interesPreview.textContent = money(interes);
                 totalPreview.textContent = money(total);
                 cuotaPreview.textContent = money(cuota);

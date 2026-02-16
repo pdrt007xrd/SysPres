@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Globalization;
 using SysPres.Models;
 using SysPres.ViewModels;
 
@@ -65,7 +66,7 @@ public class PagosController : Controller
             .Select(p => new
             {
                 id = p.Id,
-                text = $"Préstamo #{p.Id} - Saldo {p.SaldoPendiente:C}"
+                text = $"Préstamo #{p.Id} - Saldo {p.SaldoPendiente:C0}"
             })
             .ToListAsync();
 
@@ -166,7 +167,7 @@ public class PagosController : Controller
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9));
+                page.DefaultTextStyle(x => x.FontSize(8));
 
                 page.Header().Column(header =>
                 {
@@ -179,17 +180,18 @@ public class PagosController : Controller
                 {
                     table.ColumnsDefinition(c =>
                     {
-                        c.ConstantColumn(95);
-                        c.RelativeColumn(2);
-                        c.ConstantColumn(60);
-                        c.RelativeColumn(2);
-                        c.ConstantColumn(80);
-                        c.ConstantColumn(80);
-                        c.ConstantColumn(85);
-                        c.ConstantColumn(85);
-                        c.ConstantColumn(85);
-                        c.ConstantColumn(85);
-                        c.ConstantColumn(85);
+                        c.ConstantColumn(78); // Fecha
+                        c.ConstantColumn(95); // Cliente
+                        c.ConstantColumn(44); // Prestamo
+                        c.ConstantColumn(120); // Detalle
+                        c.ConstantColumn(50); // Tipo
+                        c.ConstantColumn(55); // Metodo
+                        c.ConstantColumn(55); // Balance
+                        c.ConstantColumn(55); // Capital
+                        c.ConstantColumn(55); // Interes
+                        c.ConstantColumn(55); // Pagado
+                        c.ConstantColumn(55); // Recibido
+                        c.ConstantColumn(55); // Devuelta
                     });
 
                     table.Header(h =>
@@ -215,17 +217,17 @@ public class PagosController : Controller
                             .Select(d => d.TipoAplicacion));
 
                         table.Cell().Element(CellBody).Text(p.FechaPagoUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
-                        table.Cell().Element(CellBody).Text(p.Cliente?.Nombre ?? "-");
-                        table.Cell().Element(CellBody).Text($"#{p.PrestamoId}");
-                        table.Cell().Element(CellBody).Text(string.IsNullOrWhiteSpace(detalle) ? "-" : detalle);
-                        table.Cell().Element(CellBody).Text(p.TipoPago);
-                        table.Cell().Element(CellBody).Text(p.MetodoPago);
-                        table.Cell().Element(CellBody).AlignRight().Text(p.BalancePendiente.ToString("C"));
-                        table.Cell().Element(CellBody).AlignRight().Text(p.CapitalAbonado.ToString("C"));
-                        table.Cell().Element(CellBody).AlignRight().Text(p.InteresAbonado.ToString("C"));
-                        table.Cell().Element(CellBody).AlignRight().Text(p.TotalPagado.ToString("C"));
-                        table.Cell().Element(CellBody).AlignRight().Text(p.MontoRecibido.ToString("C"));
-                        table.Cell().Element(CellBody).AlignRight().Text(p.CambioDevuelto.ToString("C"));
+                        table.Cell().Element(CellBody).Text(Limit(p.Cliente?.Nombre ?? "-", 22));
+                        table.Cell().Element(CellBody).AlignCenter().Text($"#{p.PrestamoId}");
+                        table.Cell().Element(CellBody).Text(Limit(string.IsNullOrWhiteSpace(detalle) ? "-" : detalle, 30));
+                        table.Cell().Element(CellBody).AlignCenter().Text(Limit(p.TipoPago, 10));
+                        table.Cell().Element(CellBody).AlignCenter().Text(Limit(p.MetodoPago, 11));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.BalancePendiente.ToString("C0"));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.CapitalAbonado.ToString("C0"));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.InteresAbonado.ToString("C0"));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.TotalPagado.ToString("C0"));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.MontoRecibido.ToString("C0"));
+                        table.Cell().Element(CellBody).AlignRight().Text(p.CambioDevuelto.ToString("C0"));
                     }
                 });
             });
@@ -234,8 +236,31 @@ public class PagosController : Controller
         Response.Headers.ContentDisposition = "inline; filename=historial-pagos.pdf";
         return File(pdf, "application/pdf");
 
-        static IContainer CellHeader(IContainer c) => c.Background(Colors.Grey.Lighten3).Padding(5).DefaultTextStyle(x => x.SemiBold());
-        static IContainer CellBody(IContainer c) => c.Padding(5);
+        static IContainer CellHeader(IContainer c) => c
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
+
+        static IContainer CellBody(IContainer c) => c
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
+
+        static string Limit(string value, int max)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "-";
+            }
+
+            return value.Length <= max ? value : value[..max];
+        }
     }
 
     [HttpPost]
@@ -280,25 +305,25 @@ public class PagosController : Controller
 
             if (string.Equals(metodoPagoSoloInteres, "Efectivo", StringComparison.OrdinalIgnoreCase))
             {
-                montoRecibidoSoloInteres = Math.Round(model.MontoRecibido, 2);
+                montoRecibidoSoloInteres = Math.Round(model.MontoRecibido, 0);
                 if (montoRecibidoSoloInteres < interesPendiente)
                 {
-                    ModelState.AddModelError(nameof(model.MontoRecibido), $"El efectivo recibido no puede ser menor al interés pendiente ({interesPendiente:C}).");
+                    ModelState.AddModelError(nameof(model.MontoRecibido), $"El efectivo recibido no puede ser menor al interés pendiente ({interesPendiente:C0}).");
                     return View("Index", model);
                 }
 
-                cambioDevueltoSoloInteres = Math.Round(montoRecibidoSoloInteres - interesPendiente, 2);
+                cambioDevueltoSoloInteres = Math.Round(montoRecibidoSoloInteres - interesPendiente, 0);
             }
 
             var saldoAntesSoloInteres = prestamo.SaldoPendiente;
-            var capitalPendiente = Math.Max(0, Math.Round(prestamo.SaldoPendiente - interesPendiente, 2));
+            var capitalPendiente = Math.Max(0, Math.Round(prestamo.SaldoPendiente - interesPendiente, 0));
             var nuevaFechaInicio = DateTime.Today;
 
             prestamo.FechaInicio = nuevaFechaInicio;
             prestamo.Monto = capitalPendiente;
-            prestamo.MontoInteres = Math.Round(capitalPendiente * (prestamo.TasaInteresAnual / 100m), 2);
-            prestamo.TotalAPagar = Math.Round(prestamo.Monto + prestamo.MontoInteres, 2);
-            prestamo.ValorCuota = prestamo.NumeroPagos > 0 ? Math.Round(prestamo.TotalAPagar / prestamo.NumeroPagos, 2) : 0;
+            prestamo.MontoInteres = Math.Round(capitalPendiente * (prestamo.TasaInteresAnual / 100m), 0);
+            prestamo.TotalAPagar = Math.Round(prestamo.Monto + prestamo.MontoInteres, 0);
+            prestamo.ValorCuota = prestamo.NumeroPagos > 0 ? Math.Round(prestamo.TotalAPagar / prestamo.NumeroPagos, 0) : 0;
             prestamo.SaldoPendiente = prestamo.TotalAPagar;
             prestamo.Estado = prestamo.SaldoPendiente <= 0 ? "Saldado" : "Activo";
 
@@ -330,7 +355,7 @@ public class PagosController : Controller
                 "Creó",
                 "Pago",
                 $"Pago #{pagoSoloInteres.Id}",
-                $"Pago solo interés - Cliente {prestamo.Cliente?.Nombre}, préstamo #{prestamo.Id}, interés {interesPendiente:C}, saldo {saldoAntesSoloInteres:C} -> {prestamo.SaldoPendiente:C}");
+                $"Pago solo interés - Cliente {prestamo.Cliente?.Nombre}, préstamo #{prestamo.Id}, interés {interesPendiente:C0}, saldo {saldoAntesSoloInteres:C0} -> {prestamo.SaldoPendiente:C0}");
 
             return RedirectToAction(nameof(ReciboPdf), new { id = pagoSoloInteres.Id, formato = model.FormatoPdf });
         }
@@ -346,7 +371,7 @@ public class PagosController : Controller
             return View("Index", model);
         }
 
-        var montoAplicar = Math.Round(model.MontoAplicar, 2);
+        var montoAplicar = Math.Round(model.MontoAplicar, 0);
         if (montoAplicar <= 0)
         {
             ModelState.AddModelError(nameof(model.MontoAplicar), "Indica un monto válido para aplicar al préstamo.");
@@ -363,15 +388,15 @@ public class PagosController : Controller
                 break;
             }
 
-            var saldoAnterior = Math.Round(cuota.MontoCuota - cuota.MontoPagado, 2);
+            var saldoAnterior = Math.Round(cuota.MontoCuota - cuota.MontoPagado, 0);
             if (saldoAnterior <= 0)
             {
                 continue;
             }
 
             var montoAplicadoCuota = Math.Min(restantePorAplicar, saldoAnterior);
-            cuota.MontoPagado = Math.Round(cuota.MontoPagado + montoAplicadoCuota, 2);
-            var saldoRestante = Math.Round(cuota.MontoCuota - cuota.MontoPagado, 2);
+            cuota.MontoPagado = Math.Round(cuota.MontoPagado + montoAplicadoCuota, 0);
+            var saldoRestante = Math.Round(cuota.MontoCuota - cuota.MontoPagado, 0);
             cuota.Estado = saldoRestante <= 0 ? "Pagado" : "Parcial";
             cuota.FechaPago = saldoRestante <= 0 ? ahora : cuota.FechaPago;
 
@@ -387,7 +412,7 @@ public class PagosController : Controller
                 SaldoCuotaRestante = saldoRestante
             });
 
-            restantePorAplicar = Math.Round(restantePorAplicar - montoAplicadoCuota, 2);
+            restantePorAplicar = Math.Round(restantePorAplicar - montoAplicadoCuota, 0);
         }
 
         if (!detalles.Any())
@@ -396,19 +421,19 @@ public class PagosController : Controller
             return View("Index", model);
         }
 
-        var totalPagado = Math.Round(detalles.Sum(x => x.MontoAplicado), 2);
-        var capitalAbonado = Math.Round(prestamo.TotalAPagar > 0 ? totalPagado * (prestamo.Monto / prestamo.TotalAPagar) : 0m, 2);
-        var interesAbonado = Math.Round(totalPagado - capitalAbonado, 2);
+        var totalPagado = Math.Round(detalles.Sum(x => x.MontoAplicado), 0);
+        var capitalAbonado = Math.Round(prestamo.TotalAPagar > 0 ? totalPagado * (prestamo.Monto / prestamo.TotalAPagar) : 0m, 0);
+        var interesAbonado = Math.Round(totalPagado - capitalAbonado, 0);
         var metodoPago = string.IsNullOrWhiteSpace(model.MetodoPago) ? "Efectivo" : model.MetodoPago;
         decimal montoRecibido = 0;
         decimal cambioDevuelto = 0;
 
         if (string.Equals(metodoPago, "Efectivo", StringComparison.OrdinalIgnoreCase))
         {
-            montoRecibido = Math.Round(model.MontoRecibido, 2);
+            montoRecibido = Math.Round(model.MontoRecibido, 0);
             if (montoRecibido < montoAplicar)
             {
-                ModelState.AddModelError(nameof(model.MontoRecibido), $"El monto recibido en efectivo no puede ser menor al monto indicado ({montoAplicar:C}).");
+                ModelState.AddModelError(nameof(model.MontoRecibido), $"El monto recibido en efectivo no puede ser menor al monto indicado ({montoAplicar:C0}).");
                 return View("Index", model);
             }
         }
@@ -420,11 +445,11 @@ public class PagosController : Controller
 
         if (string.Equals(metodoPago, "Efectivo", StringComparison.OrdinalIgnoreCase))
         {
-            cambioDevuelto = Math.Round(montoRecibido - totalPagado, 2);
+            cambioDevuelto = Math.Round(montoRecibido - totalPagado, 0);
         }
 
         var saldoAntesPrestamo = prestamo.SaldoPendiente;
-        var saldoDespuesPrestamo = Math.Round(prestamo.Cuotas.Sum(c => Math.Max(0, c.MontoCuota - c.MontoPagado)), 2);
+        var saldoDespuesPrestamo = Math.Round(prestamo.Cuotas.Sum(c => Math.Max(0, c.MontoCuota - c.MontoPagado)), 0);
         prestamo.SaldoPendiente = saldoDespuesPrestamo;
         prestamo.Estado = saldoDespuesPrestamo <= 0 ? "Saldado" : "Activo";
 
@@ -453,7 +478,7 @@ public class PagosController : Controller
             "Creó",
             "Pago",
             $"Pago #{pago.Id}",
-            $"Cliente {prestamo.Cliente?.Nombre}, préstamo #{prestamo.Id}, pagó {pago.TotalPagado:C}, saldo {saldoAntesPrestamo:C} -> {saldoDespuesPrestamo:C}");
+            $"Cliente {prestamo.Cliente?.Nombre}, préstamo #{prestamo.Id}, pagó {pago.TotalPagado:C0}, saldo {saldoAntesPrestamo:C0} -> {saldoDespuesPrestamo:C0}");
 
         return RedirectToAction(nameof(ReciboPdf), new { id = pago.Id, formato = model.FormatoPdf });
     }
@@ -480,23 +505,44 @@ public class PagosController : Controller
         var empresaDireccion = empresa?.Direccion ?? "Dirección pendiente";
         var empresaTelefono = empresa?.Telefono ?? "Teléfono pendiente";
         var empresaCiudad = empresa?.Ciudad ?? "Ciudad pendiente";
+        var empresaRnc = $"RNC: {(string.IsNullOrWhiteSpace(empresa?.Rnc) ? "-" : empresa.Rnc)}";
+        var culturaMoneda = CultureInfo.GetCultureInfo("es-DO");
+        var cuotasIds = pago.Detalles.Select(d => d.PrestamoCuotaId).Distinct().ToList();
+        var fechasVencimiento = cuotasIds.Count == 0
+            ? new Dictionary<int, DateTime>()
+            : await _context.PrestamoCuotas
+                .AsNoTracking()
+                .Where(c => cuotasIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => c.FechaVencimiento);
+        var contratoNumero = string.IsNullOrWhiteSpace(pago.Cliente?.Documento) ? "-" : pago.Cliente.Documento;
+        var reciboNumero = $"PP-{fechaLocal:yyyyMMdd}{pago.Id:0000}";
+        var formaPagoEtiqueta = pago.MetodoPago.Equals("Transferencia", StringComparison.OrdinalIgnoreCase)
+            ? "DEPOSITO"
+            : pago.MetodoPago.ToUpperInvariant();
 
+        string Dinero(decimal monto) => $"RD${Math.Round(monto, 0, MidpointRounding.AwayFromZero).ToString("N0", culturaMoneda)}";
+        string MontoTabla(decimal monto) => $"$ {monto:0}";
+        string TipoFila(string? tipoAplicacion) =>
+            !string.IsNullOrWhiteSpace(tipoAplicacion) && tipoAplicacion.Contains("abono", StringComparison.OrdinalIgnoreCase)
+                ? "ABONO"
+                : "PAGO";
         var pdf = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(esTermico ? new PageSize(226.77f, 850f) : PageSizes.A4);
                 page.Margin(esTermico ? 14 : 24);
-                page.DefaultTextStyle(x => x.FontSize(esTermico ? 9 : 10));
+                page.MarginTop(esTermico ? 24 : 32);
+                page.DefaultTextStyle(x => x.FontFamily("Verdana").FontSize(9));
 
                 if (esTermico)
                 {
                     page.Header().Column(header =>
                     {
-                        header.Item().AlignCenter().Text(empresaNombre).FontSize(12).Bold();
+                        header.Item().AlignCenter().Text(empresaNombre).FontSize(13).SemiBold();
                         header.Item().AlignCenter().Text(empresaDireccion);
-                        header.Item().AlignCenter().Text($"{empresaTelefono} - {empresaCiudad}");
-                        header.Item().PaddingTop(5).LineHorizontal(1);
+                        header.Item().AlignCenter().Text($"{empresaCiudad}");
+                        header.Item().AlignCenter().Text(empresaRnc);
                     });
                 }
                 else
@@ -508,17 +554,65 @@ public class PagosController : Controller
                     });
                 }
 
-                page.Content().PaddingVertical(10).Column(column =>
+                page.Content().PaddingTop(esTermico ? 14 : 10).PaddingBottom(10).Column(column =>
                 {
                     if (esTermico)
                     {
-                        column.Item().Text($"Fecha: {fechaLocal:dd/MM/yyyy HH:mm}");
-                        column.Item().PaddingTop(8);
-                        column.Item().Text($"Cliente: {pago.Cliente?.Nombre ?? "-"}");
-                        column.Item().Text($"Cobrado por: {pago.Usuario}");
-                        column.Item().Text($"Préstamo: #{pago.PrestamoId}");
-                        column.Item().Text($"Tipo: {pago.TipoPago}");
-                        column.Item().Text($"Método: {pago.MetodoPago}");
+                        column.Item().PaddingTop(4).Column(info =>
+                        {
+                            info.Item().AlignCenter().Text($"Fecha:   {fechaLocal:dd/MM/yyyy}");
+                            info.Item().AlignCenter().Text($"Contrato:   {contratoNumero}");
+                            info.Item().AlignCenter().Text($"Recibo No:   {reciboNumero}");
+                            info.Item().AlignCenter().Text($"Cliente:   {(pago.Cliente?.Nombre ?? "-").ToUpperInvariant()}");
+                            info.Item().AlignCenter().Text($"Atendido Por:   {pago.Usuario}");
+                            info.Item().AlignCenter().Text($"Forma Pago:   {formaPagoEtiqueta}");
+                        });
+
+                        column.Item().PaddingTop(8).Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn(0.9f);
+                                c.RelativeColumn(1.5f);
+                                c.RelativeColumn(1.2f);
+                                c.RelativeColumn(1.4f);
+                            });
+
+                            table.Header(h =>
+                            {
+                                h.Cell().Element(CellHeader).Text("Cuota");
+                                h.Cell().Element(CellHeader).Text("Fecha");
+                                h.Cell().Element(CellHeader).Text("Tipo");
+                                h.Cell().Element(CellHeaderMoney).Text("Total");
+                            });
+
+                            var detallesOrdenados = pago.Detalles.OrderBy(x => x.NumeroCuota).ThenBy(x => x.Id).ToList();
+                            foreach (var d in detallesOrdenados)
+                            {
+                                var fechaCuota = fechasVencimiento.TryGetValue(d.PrestamoCuotaId, out var fv)
+                                    ? fv.ToString("dd/MM/yy")
+                                    : "-";
+                                table.Cell().Element(CellBody).Text(d.NumeroCuota.ToString());
+                                table.Cell().Element(CellBody).Text(fechaCuota);
+                                table.Cell().Element(CellBody).Text(TipoFila(d.TipoAplicacion));
+                                table.Cell().Element(CellBodyMoney).Text(MontoTabla(d.MontoAplicado));
+                            }
+
+                            if (!detallesOrdenados.Any())
+                            {
+                                table.Cell().Element(CellBody).Text("-");
+                                table.Cell().Element(CellBody).Text(fechaLocal.ToString("dd/MM/yy"));
+                                table.Cell().Element(CellBody).Text("PAGO");
+                                table.Cell().Element(CellBodyMoney).Text(MontoTabla(pago.TotalPagado));
+                            }
+                        });
+
+                        column.Item().PaddingTop(8).Element(CellSeparator).Text(string.Empty);
+                        column.Item().PaddingTop(4).Row(r =>
+                        {
+                            r.RelativeItem().Text("Totales:");
+                            r.ConstantItem(95).AlignRight().Text(MontoTabla(pago.TotalPagado));
+                        });
                     }
                     else
                     {
@@ -528,63 +622,52 @@ public class PagosController : Controller
                         column.Item().Text($"Usuario: {pago.Usuario}");
                         column.Item().Text($"Tipo de pago: {pago.TipoPago}");
                         column.Item().Text($"Método de pago: {pago.MetodoPago}");
-                    }
 
-                    column.Item().PaddingTop(esTermico ? 16 : 8).Table(table =>
-                    {
-                        table.ColumnsDefinition(c =>
+                        column.Item().PaddingTop(8).Table(table =>
                         {
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(2);
-                            c.RelativeColumn(1.5f);
-                            c.RelativeColumn(1.5f);
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(1.6f);
+                                c.RelativeColumn(1.8f);
+                                c.RelativeColumn(1.6f);
+                            });
+
+                            table.Header(h =>
+                            {
+                                h.Cell().Element(CellHeader).Text("Cuota");
+                                h.Cell().Element(CellHeader).Text("Fecha");
+                                h.Cell().Element(CellHeaderMoney).Text("Tipo");
+                                h.Cell().Element(CellHeaderMoney).AlignRight().Text("Total");
+                            });
+
+                            var detallesOrdenados = pago.Detalles.OrderBy(x => x.NumeroCuota).ThenBy(x => x.Id).ToList();
+                            foreach (var d in detallesOrdenados)
+                            {
+                                var fechaCuota = fechasVencimiento.TryGetValue(d.PrestamoCuotaId, out var fv)
+                                    ? fv.ToString("dd/MM/yyyy")
+                                    : "-";
+                                table.Cell().Element(CellBody).Text(d.NumeroCuota.ToString());
+                                table.Cell().Element(CellBody).Text(fechaCuota);
+                                table.Cell().Element(CellBody).Text(pago.MetodoPago);
+                                table.Cell().Element(CellBodyMoney).AlignRight().Text(Dinero(d.MontoAplicado));
+                            }
+
+                            if (!detallesOrdenados.Any())
+                            {
+                                table.Cell().Element(CellBody).Text("-");
+                                table.Cell().Element(CellBody).Text(fechaLocal.ToString("dd/MM/yyyy"));
+                                table.Cell().Element(CellBody).Text(pago.MetodoPago);
+                                table.Cell().Element(CellBodyMoney).AlignRight().Text(Dinero(pago.TotalPagado));
+                            }
                         });
 
-                        table.Header(h =>
-                        {
-                            h.Cell().Element(CellHeader).Text("#");
-                            h.Cell().Element(CellHeader).Text("Detalle");
-                            h.Cell().Element(CellHeader).AlignRight().Text("Cobrado");
-                            h.Cell().Element(CellHeader).AlignRight().Text("Saldo");
-                        });
-
-                        var detallesOrdenados = pago.Detalles.OrderBy(x => x.NumeroCuota).ThenBy(x => x.Id).ToList();
-                        foreach (var d in detallesOrdenados)
-                        {
-                            table.Cell().Element(CellBody).Text(d.NumeroCuota.ToString());
-                            table.Cell().Element(CellBody).Text(d.TipoAplicacion);
-                            table.Cell().Element(CellBody).AlignRight().Text(d.MontoAplicado.ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(d.SaldoCuotaRestante.ToString("C"));
-                        }
-
-                        if (!detallesOrdenados.Any())
-                        {
-                            table.Cell().Element(CellBody).Text("-");
-                            table.Cell().Element(CellBody).Text("Pago solo interés");
-                            table.Cell().Element(CellBody).AlignRight().Text(pago.InteresAbonado.ToString("C"));
-                            table.Cell().Element(CellBody).AlignRight().Text(pago.BalancePendiente.ToString("C"));
-                        }
-                    });
-
-                    column.Item().PaddingTop(10).LineHorizontal(1);
-                    column.Item().PaddingTop(6).AlignRight().Text($"Balance pendiente: {pago.BalancePendiente:C}");
-                    column.Item().AlignRight().Text($"Capital abonado: {pago.CapitalAbonado:C}");
-                    column.Item().AlignRight().Text($"Interés abonado: {pago.InteresAbonado:C}");
-                    column.Item().AlignRight().Text($"Total pagado: {pago.TotalPagado:C}").Bold();
-                    column.Item().AlignRight().Text($"Efectivo recibido: {pago.MontoRecibido:C}");
-                    column.Item().AlignRight().Text($"Devuelta: {pago.CambioDevuelto:C}");
-                    if (!esTermico)
-                    {
+                        column.Item().PaddingTop(10).LineHorizontal(1);
+                        column.Item().PaddingTop(6).AlignRight().Text($"Total: {Dinero(pago.TotalPagado)}").Bold();
                         column.Item().AlignRight().Text("Formato: A4");
+                        column.Item().PaddingTop(8).AlignCenter().Text("Gracias por Preferirnos.").Bold();
+                        column.Item().PaddingTop(18).AlignCenter().Text("SysPres - Comprobante generado para impresión o guardado");
                     }
-
-                    column.Item().PaddingTop(8).AlignCenter().Text("Gracias por Preferirnos.").Bold();
-                });
-
-                page.Footer().AlignCenter().Text(x =>
-                {
-                    x.Span("SysPres - ");
-                    x.Span("Comprobante generado para impresión o guardado");
                 });
             });
         }).GeneratePdf();
@@ -592,17 +675,48 @@ public class PagosController : Controller
         Response.Headers.ContentDisposition = $"inline; filename=recibo-pago-{pago.Id}.pdf";
         return File(pdf, "application/pdf");
 
-        static IContainer CellHeader(IContainer container)
+        IContainer CellHeader(IContainer container)
         {
+            var paddingHorizontal = esTermico ? 2 : 5;
             return container
                 .Background(Colors.Grey.Lighten3)
-                .Padding(5)
+                .PaddingVertical(5)
+                .PaddingHorizontal(paddingHorizontal)
                 .DefaultTextStyle(x => x.SemiBold());
         }
 
-        static IContainer CellBody(IContainer container)
+        IContainer CellBody(IContainer container)
         {
-            return container.Padding(5);
+            var paddingHorizontal = esTermico ? 2 : 5;
+            return container
+                .PaddingVertical(5)
+                .PaddingHorizontal(paddingHorizontal);
+        }
+
+        IContainer CellHeaderMoney(IContainer container)
+        {
+            var paddingHorizontal = esTermico ? 0 : 5;
+            return container
+                .Background(Colors.Grey.Lighten3)
+                .PaddingVertical(5)
+                .PaddingHorizontal(paddingHorizontal)
+                .DefaultTextStyle(x => x.SemiBold());
+        }
+
+        IContainer CellBodyMoney(IContainer container)
+        {
+            var paddingHorizontal = esTermico ? 0 : 5;
+            return container
+                .PaddingVertical(5)
+                .PaddingHorizontal(paddingHorizontal);
+        }
+
+        IContainer CellSeparator(IContainer container)
+        {
+            return container
+                .PaddingVertical(2)
+                .BorderBottom(1)
+                .BorderColor(Colors.Grey.Darken1);
         }
     }
 
@@ -632,7 +746,7 @@ public class PagosController : Controller
             .Select(p => new SelectListItem
             {
                 Value = p.Id.ToString(),
-                Text = $"Préstamo #{p.Id} - Saldo {p.SaldoPendiente:C}"
+                Text = $"Préstamo #{p.Id} - Saldo {p.SaldoPendiente:C0}"
             })
             .ToListAsync();
     }
@@ -688,7 +802,7 @@ public class PagosController : Controller
             .Where(p => p.PrestamoId == prestamo.Id && p.FechaPagoUtc >= fechaInicioUtc)
             .SumAsync(p => p.InteresAbonado);
 
-        return Math.Max(0, Math.Round(prestamo.MontoInteres - interesPagadoCiclo, 2));
+        return Math.Max(0, Math.Round(prestamo.MontoInteres - interesPagadoCiclo, 0));
     }
 
     private static List<PrestamoCuota> BuildCuotas(Prestamo prestamo)
@@ -715,6 +829,7 @@ public class PagosController : Controller
     {
         return frecuencia switch
         {
+            "Diario" => baseDate.AddDays(salto),
             "Semanal" => baseDate.AddDays(7 * salto),
             "Quincenal" => baseDate.AddDays(15 * salto),
             _ => baseDate.AddMonths(salto)

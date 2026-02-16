@@ -9,7 +9,7 @@ public class Prestamo
     [Required]
     public int ClienteId { get; set; }
 
-    [Range(0.01, 999999999, ErrorMessage = "El monto debe ser mayor a cero.")]
+    [Range(1, 999999999, ErrorMessage = "El monto debe ser mayor a cero.")]
     public decimal Monto { get; set; }
 
     [Range(0, 100, ErrorMessage = "La tasa debe estar entre 0 y 100.")]

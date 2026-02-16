@@ -54,9 +54,9 @@ public class ClientesController : Controller
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
+                page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9));
+                page.DefaultTextStyle(x => x.FontSize(8));
 
                 page.Header().Column(header =>
                 {
@@ -70,13 +70,13 @@ public class ClientesController : Controller
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(2); // Cliente
-                            columns.ConstantColumn(90); // Documento
-                            columns.ConstantColumn(95); // Contacto
-                            columns.RelativeColumn(3); // Direccion
-                            columns.ConstantColumn(75); // Prestamos activos
-                            columns.ConstantColumn(85); // Interes cobrado
-                            columns.ConstantColumn(70); // Solo interes
+                            columns.RelativeColumn(23); // Cliente
+                            columns.RelativeColumn(15); // Documento
+                            columns.RelativeColumn(15); // Contacto
+                            columns.RelativeColumn(25); // Direccion
+                            columns.RelativeColumn(8); // Prestamos activos
+                            columns.RelativeColumn(9); // Interes cobrado
+                            columns.RelativeColumn(5); // Solo interes
                         });
 
                         table.Header(header =>
@@ -96,12 +96,12 @@ public class ClientesController : Controller
                             var prestamosActivos = cliente.Prestamos.Count(p => p.Estado == "Activo");
                             var pagoInfo = pagosCliente.TryGetValue(cliente.Id, out var value) ? value : null;
 
-                            table.Cell().Element(CellBody).Text(Limit(cliente.Nombre, 45));
+                            table.Cell().Element(CellBody).Text(Limit(cliente.Nombre, 26));
                             table.Cell().Element(CellBody).Text(Limit(cliente.Documento, 13));
                             table.Cell().Element(CellBody).Text(Limit(contacto, 13));
-                            table.Cell().Element(CellBody).Text(Limit(cliente.Direccion ?? "-", 120));
+                            table.Cell().Element(CellBody).Text(Limit(cliente.Direccion ?? "-", 34));
                             table.Cell().Element(CellBody).AlignRight().Text(prestamosActivos.ToString());
-                            table.Cell().Element(CellBody).AlignRight().Text((pagoInfo?.InteresCobrado ?? 0m).ToString("C"));
+                            table.Cell().Element(CellBody).AlignRight().Text(FormatRdMoney(pagoInfo?.InteresCobrado ?? 0m));
                             table.Cell().Element(CellBody).AlignRight().Text((pagoInfo?.PagosSoloInteres ?? 0).ToString());
                         }
                     });
@@ -122,18 +122,21 @@ public class ClientesController : Controller
         Response.Headers.ContentDisposition = "inline; filename=reporte-clientes.pdf";
         return File(pdfBytes, "application/pdf");
 
-        static IContainer CellHeader(IContainer container)
-        {
-            return container
-                .Background(Colors.Grey.Lighten3)
-                .Padding(6)
-                .DefaultTextStyle(x => x.SemiBold());
-        }
+        static IContainer CellHeader(IContainer container) => container
+            .Background(Colors.Grey.Lighten3)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten1)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.SemiBold());
 
-        static IContainer CellBody(IContainer container)
-        {
-            return container.Padding(6);
-        }
+        static IContainer CellBody(IContainer container) => container
+            .BorderBottom(1)
+            .BorderLeft(1)
+            .BorderRight(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
 
         static string Limit(string value, int max)
         {
@@ -142,8 +145,11 @@ public class ClientesController : Controller
                 return "-";
             }
 
-            return value.Length <= max ? value : value[..max];
+            var normalized = Regex.Replace(value.Trim(), @"\s+", " ");
+            return normalized.Length <= max ? normalized : $"{normalized[..(max - 1)]}…";
         }
+
+        static string FormatRdMoney(decimal value) => $"RD${Math.Round(value, 0):N0}";
     }
 
     [HttpGet]

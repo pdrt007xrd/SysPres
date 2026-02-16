@@ -21,13 +21,16 @@
                 <div class="col-md-6">
                     <label class="form-label">Cliente</label>
                     <input type="hidden" name="clienteId" id="clienteIdHidden" value="@(Model.ClienteId?.ToString() ?? string.Empty)" />
-                    <input type="text" id="clienteNombreInput" class="form-control" list="clientesDatalist" placeholder="Escribe el nombre del cliente..." autocomplete="off" />
-                    <datalist id="clientesDatalist">
+                    <div class="position-relative">
+                        <input type="text" id="clienteNombreInput" class="form-control" placeholder="Selecciona o escribe cliente..." autocomplete="off" />
+                        <div id="clientesDropdown" class="dropdown-menu w-100 mt-1 p-0" style="max-height: 260px; overflow-y: auto;"></div>
+                    </div>
+                    <select id="clientesSource" class="d-none">
                         @foreach (var c in Model.Clientes)
                         {
-                            <option value="@c.Text" data-id="@c.Value"></option>
+                            <option value="@c.Value">@c.Text</option>
                         }
-                    </datalist>
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Préstamo</label>
@@ -61,9 +64,13 @@
                     <input asp-for="ClienteId" type="hidden" />
                     <input asp-for="PrestamoId" type="hidden" />
 
-                    <div class="table-responsive mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">Cuotas pendientes: <strong>@Model.CuotasPendientes.Count</strong></small>
+                        <small class="text-muted">Vista compacta con scroll interno</small>
+                    </div>
+                    <div class="table-responsive mb-3 border rounded" style="max-height: 320px; overflow-y: auto;">
                         <table class="table table-hover align-middle">
-                            <thead class="table-light">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 2;">
                                 <tr>
                                     <th>Cuota</th>
                                     <th>Vencimiento</th>
@@ -79,9 +86,9 @@
                                     <tr>
                                         <td>@c.NumeroCuota</td>
                                         <td>@c.FechaVencimiento.ToString("dd/MM/yyyy")</td>
-                                        <td class="text-end">@c.MontoCuota.ToString("C")</td>
-                                        <td class="text-end">@c.MontoPagado.ToString("C")</td>
-                                        <td class="text-end fw-semibold">@c.SaldoPendiente.ToString("C")</td>
+                                        <td class="text-end">@c.MontoCuota.ToString("C0")</td>
+                                        <td class="text-end">@c.MontoPagado.ToString("C0")</td>
+                                        <td class="text-end fw-semibold">@c.SaldoPendiente.ToString("C0")</td>
                                         <td>
                                             <span class="badge @(c.Estado == "Parcial" ? "text-bg-warning" : "text-bg-secondary")">@c.Estado</span>
                                         </td>
@@ -102,17 +109,17 @@
                         </div>
                         <div class="col-md-4">
                             <label asp-for="MontoAplicar" class="form-label">Monto a aplicar al préstamo</label>
-                            <input asp-for="MontoAplicar" id="montoAplicarInput" type="number" min="0.01" step="0.01" class="form-control" />
+                            <input asp-for="MontoAplicar" id="montoAplicarInput" type="number" min="1" step="1" class="form-control" />
                             <span asp-validation-for="MontoAplicar" class="text-danger"></span>
                             <small id="montoHint" class="text-muted">Se reparte en orden: cuota 1 pendiente, luego cuota 2, etc.</small>
                             <input type="hidden" id="interesPendienteCiclo" value="@Model.InteresPendienteCiclo" />
                         </div>
                         <div class="col-md-4">
-                            <label asp-for="MetodoPago" class="form-label">Método de pago</label>
+                            <label asp-for="MetodoPago" class="form-label">Forma de pago</label>
                             <select asp-for="MetodoPago" id="metodoPagoInput" class="form-select">
                                 <option value="Efectivo">Efectivo</option>
-                                <option value="Transferencia">Transferencia</option>
                                 <option value="Tarjeta">Tarjeta</option>
+                                <option value="Transferencia">Transferencia</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -124,16 +131,16 @@
                         </div>
                         <div class="col-md-4 cash-only">
                             <label asp-for="MontoRecibido" class="form-label">Efectivo recibido</label>
-                            <input asp-for="MontoRecibido" id="montoRecibidoInput" type="number" min="0" step="0.01" class="form-control" />
+                            <input asp-for="MontoRecibido" id="montoRecibidoInput" type="number" min="0" step="1" class="form-control" />
                             <span asp-validation-for="MontoRecibido" class="text-danger"></span>
                         </div>
                         <div class="col-md-4 cash-only">
                             <label class="form-label">Cambio devuelto</label>
-                            <input id="cambioDevuelto" type="text" class="form-control" value="$0.00" readonly />
+                            <input id="cambioDevuelto" type="text" class="form-control" value="$0" readonly />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Total a aplicar</label>
-                            <input id="totalAplicar" type="text" class="form-control" value="$0.00" readonly />
+                            <input id="totalAplicar" type="text" class="form-control" value="$0" readonly />
                         </div>
                     </div>
 
@@ -157,24 +164,59 @@
         (function () {
             const clienteInput = document.getElementById('clienteNombreInput');
             const clienteIdHidden = document.getElementById('clienteIdHidden');
-            const clienteOptions = Array.from(document.querySelectorAll('#clientesDatalist option'));
+            const clienteSource = document.getElementById('clientesSource');
+            const clientesDropdown = document.getElementById('clientesDropdown');
             const prestamoSelect = document.getElementById('prestamoSelect');
             const tipoPagoInput = document.getElementById('tipoPagoInput');
             const montoAplicarInput = document.getElementById('montoAplicarInput');
             const interesPendienteCiclo = document.getElementById('interesPendienteCiclo');
             const montoHint = document.getElementById('montoHint');
+            const clienteOptions = Array.from(clienteSource?.options || []).map(o => ({
+                id: o.value,
+                text: o.text
+            }));
+
+            function hideClientesDropdown() {
+                if (clientesDropdown) {
+                    clientesDropdown.classList.remove('show');
+                }
+            }
+
+            function setCliente(option) {
+                if (!option) return;
+                if (clienteInput) clienteInput.value = option.text;
+                if (clienteIdHidden) clienteIdHidden.value = option.id;
+                hideClientesDropdown();
+            }
+
+            function renderClientesDropdown(filterText) {
+                if (!clientesDropdown) return;
+                const term = (filterText || '').trim().toLowerCase();
+                const filtered = !term
+                    ? clienteOptions
+                    : clienteOptions.filter(c => c.text.toLowerCase().includes(term));
+
+                clientesDropdown.innerHTML = filtered.length
+                    ? filtered.map(c =>
+                        `<button type="button" class="dropdown-item cliente-option" data-id="${c.id}" data-text="${encodeURIComponent(c.text)}">${c.text}</button>`
+                    ).join('')
+                    : '<span class="dropdown-item-text text-muted">Sin coincidencias</span>';
+
+                clientesDropdown.classList.add('show');
+            }
 
             function resolveCliente() {
-                const value = (clienteInput?.value || '').trim();
-                const normalized = value.toLowerCase();
-                const option = clienteOptions.find(o =>
-                    (o.value || '').toLowerCase() === normalized ||
-                    (o.value || '').toLowerCase().startsWith(normalized));
-                if (option) {
-                    clienteIdHidden.value = option.getAttribute('data-id');
-                } else if (clienteIdHidden) {
-                    clienteIdHidden.value = '';
+                const value = (clienteInput?.value || '').trim().toLowerCase();
+                const exact = clienteOptions.find(c => c.text.toLowerCase() === value);
+                const startsWith = clienteOptions.find(c => c.text.toLowerCase().startsWith(value));
+                const selected = exact || startsWith || null;
+                if (selected) {
+                    setCliente(selected);
+                    return true;
                 }
+
+                if (clienteIdHidden) clienteIdHidden.value = '';
+                return false;
             }
 
             async function loadPrestamosAndGo() {
@@ -208,14 +250,19 @@
 
             function restoreCliente() {
                 if (!clienteIdHidden?.value || !clienteInput) return;
-                const selected = clienteOptions.find(o => o.getAttribute('data-id') === clienteIdHidden.value);
+                const selected = clienteOptions.find(o => o.id === clienteIdHidden.value);
                 if (selected) {
-                    clienteInput.value = selected.value;
+                    clienteInput.value = selected.text;
                 }
             }
 
             function money(v) {
-                return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(v || 0);
+                return new Intl.NumberFormat('es-DO', {
+                    style: 'currency',
+                    currency: 'DOP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(v || 0);
             }
 
             function recalcTotal() {
@@ -251,7 +298,7 @@
                 const interesSeguro = isNaN(interes) ? 0 : interes;
 
                 if (isSoloInteres) {
-                    montoAplicarInput.value = interesSeguro.toFixed(2);
+                    montoAplicarInput.value = Math.round(interesSeguro).toString();
                     montoAplicarInput.readOnly = true;
                     if (montoHint) {
                         montoHint.textContent = 'Modo solo interés: se aplica el interés pendiente del ciclo y se reestructura el préstamo.';
@@ -268,16 +315,42 @@
 
             restoreCliente();
             if (clienteInput) {
-                clienteInput.addEventListener('input', resolveCliente);
-                clienteInput.addEventListener('change', async function () {
-                    resolveCliente();
-                    await loadPrestamosAndGo();
+                clienteInput.addEventListener('focus', function () {
+                    renderClientesDropdown(clienteInput.value);
+                });
+                clienteInput.addEventListener('input', function () {
+                    if (clienteIdHidden) clienteIdHidden.value = '';
+                    renderClientesDropdown(clienteInput.value);
                 });
                 clienteInput.addEventListener('blur', async function () {
-                    resolveCliente();
-                    if (clienteIdHidden?.value) {
+                    setTimeout(async () => {
+                        const resolved = resolveCliente();
+                        hideClientesDropdown();
+                        if (resolved && clienteIdHidden?.value) {
+                            await loadPrestamosAndGo();
+                        }
+                    }, 120);
+                });
+                clienteInput.addEventListener('keydown', async function (e) {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const resolved = resolveCliente();
+                    hideClientesDropdown();
+                    if (resolved && clienteIdHidden?.value) {
                         await loadPrestamosAndGo();
                     }
+                });
+            }
+
+            if (clientesDropdown) {
+                clientesDropdown.addEventListener('click', async function (e) {
+                    const item = e.target.closest('.cliente-option');
+                    if (!item) return;
+                    setCliente({
+                        id: item.getAttribute('data-id') || '',
+                        text: decodeURIComponent(item.getAttribute('data-text') || '')
+                    });
+                    await loadPrestamosAndGo();
                 });
             }
 
